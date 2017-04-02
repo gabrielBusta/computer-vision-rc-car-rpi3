@@ -106,7 +106,6 @@ def remote_control(exit, address):
     }
     server = new_server(address)
     connection, _ = server.accept()
-    connection.settimeout(5)
     while not exit.is_set():
         try:
             msg = connection.recv(1024).decode()

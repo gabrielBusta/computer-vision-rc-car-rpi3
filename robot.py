@@ -29,35 +29,21 @@ from settings import *
 
 
 def main():
-    exit = Event()
     processes = []
     processes.append(Process(target=camera,
                              name='camera',
-                             args=(exit, ('', CAMERA_PORT))))
+                             args=(('', CAMERA_PORT),)))
     processes.append(Process(target=ultrasonic_sensor,
                              name='ultrasonic sensor',
-                             args=(exit, ('', ULTRASONIC_SENSOR_PORT))))
+                             args=(('', ULTRASONIC_SENSOR_PORT),)))
     processes.append(Process(target=remote_control,
                              name='remote control',
-                             args=(exit, ('', REMOTE_CONTROL_PORT))))
-    start(processes)
-    try:
-        spin()
-    except KeyboardInterrupt:
-        exit.set()
-        wait_on(processes)
-    except Exception as ex:
-        print_exception(ex)
-        exit.set()
-        wait_on(processes)
+                             args=(('', REMOTE_CONTROL_PORT),)))
+    for process in processes:
+        process.start()
 
 
-def spin():
-    while True:
-        time.sleep(0.1)
-
-
-def camera(exit, address):
+def camera(address):
     server = new_server(address)
     connection, _ = server.accept()
     stream = connection.makefile('wb')
@@ -67,10 +53,12 @@ def camera(exit, address):
     camera.rotation = CAMERA_SETTINGS['ROTATION']
     camera.start_recording(stream, format=CAMERA_SETTINGS['FORMAT'])
     try:
-        while not exit.is_set():
+        while True:
             camera.wait_recording(1)
+    except KeyboardInterrupt:
+        printout('KeyboardInterrupt')
     except Exception as ex:
-        print_exception(ex)
+        printout(repr(ex))
     finally:
         camera.close()
         connection.shutdown(socket.SHUT_RDWR)
@@ -79,16 +67,18 @@ def camera(exit, address):
         server.close()
 
 
-def ultrasonic_sensor(exit, address):
+def ultrasonic_sensor(address):
     server = new_server(address)
     connection, _ = server.accept()
     try:
-        while not exit.is_set():
+        while True:
             distance = str(gopigo.us_dist(gopigo.analogPort))
             connection.send(distance.encode())
             time.sleep(0.1)
+    except KeyboardInterrupt:
+        printout('KeyboardInterrupt')
     except Exception as ex:
-        print_exception(ex)
+        printout(repr(ex))
     finally:
         connection.shutdown(socket.SHUT_RDWR)
         connection.close()
@@ -96,7 +86,7 @@ def ultrasonic_sensor(exit, address):
         server.close()
 
 
-def remote_control(exit, address):
+def remote_control(address):
     commands = {
         'fwd': gopigo.fwd,
         'bwd': gopigo.bwd,
@@ -106,21 +96,20 @@ def remote_control(exit, address):
     }
     server = new_server(address)
     connection, _ = server.accept()
-    while not exit.is_set():
-        try:
+    try:
+        while True:
             msg = connection.recv(1024).decode()
-        except socket.timeout:
-            continue
-        except Exception as ex:
-            print_exception(ex)
-        else:
             command = commands[msg]
             command()
-        finally:
-            connection.shutdown(socket.SHUT_RDWR)
-            connection.close()
-            server.shutdown(socket.SHUT_RDWR)
-            server.close()
+    except KeyboardInterrupt:
+        printout('KeyboardInterrupt')
+    except Exception as ex:
+        printout(repr(ex))
+    finally:
+        connection.shutdown(socket.SHUT_RDWR)
+        connection.close()
+        server.shutdown(socket.SHUT_RDWR)
+        server.close()
 
 
 def new_server(address):
@@ -131,18 +120,8 @@ def new_server(address):
     return server
 
 
-def start(processes):
-    for process in processes:
-        process.start()
-
-
-def wait_on(processes):
-    for process in processes:
-        process.join()
-
-
-def print_exception(ex):
-    sys.stdout.write('[{}]: {}\n'.format(current_process().name, repr(ex)))
+def printout(msg):
+    sys.stdout.write('[{}]: {}\n'.format(current_process().name, msg))
 
 
 if __name__ == '__main__':

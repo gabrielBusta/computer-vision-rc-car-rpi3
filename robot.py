@@ -22,9 +22,10 @@ along with this program. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 import socket
 import gopigo
 import time
+import sys
 from multiprocessing import Process, Event, current_process
 from picamera import PiCamera
-from  import *
+from settings import *
 
 
 def main():
@@ -39,6 +40,7 @@ def main():
     processes.append(Process(target=remote_control,
                              name='remote control',
                              args=(exit, ('', REMOTE_CONTROL_PORT))))
+    start(processes)
     try:
         spin()
     except KeyboardInterrupt:
@@ -105,9 +107,9 @@ def remote_control(exit, address):
     server = new_server(address)
     connection, _ = server.accept()
     connection.settimeout(5)
-    while not exit.is_set()::
+    while not exit.is_set():
         try:
-            msg = remote.recv(1024).decode()
+            msg = connection.recv(1024).decode()
         except socket.timeout:
             continue
         except Exception as ex:
@@ -128,6 +130,11 @@ def new_server(address):
     server.bind(address)
     server.listen(0)
     return server
+
+
+def start(processes):
+    for process in processes:
+        process.start()
 
 
 def wait_on(processes):

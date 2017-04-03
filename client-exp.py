@@ -1,7 +1,7 @@
 import cv2
 import socket
 from settings import *
-from multiprocessing import Queue
+from multiprocessing import Process, Queue
 
 
 def main():
@@ -20,6 +20,10 @@ def main():
     for worker in workers:
         worker.start()
 
+    while not frames.empty() and not distances.empty():
+        print(frames.get())
+        print(distances.get())
+
 
 def get_distances(address, distances):
     connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -27,7 +31,7 @@ def get_distances(address, distances):
     try:
         while True:
             distance = connection.recv(1024)
-            distances.put(int(distance))
+            distances.put(distance)
     finally:
         connection.shutdown(socket.SHUT_RDWR)
         connection.close()

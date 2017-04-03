@@ -55,10 +55,6 @@ def camera(address):
     try:
         while True:
             camera.wait_recording(1)
-    except KeyboardInterrupt:
-        printout('KeyboardInterrupt')
-    except Exception as ex:
-        printout(repr(ex))
     finally:
         camera.close()
         connection.shutdown(socket.SHUT_RDWR)
@@ -75,10 +71,6 @@ def ultrasonic_sensor(address):
             distance = str(gopigo.us_dist(gopigo.analogPort))
             connection.send(distance.encode())
             time.sleep(0.1)
-    except KeyboardInterrupt:
-        printout('KeyboardInterrupt')
-    except Exception as ex:
-        printout(repr(ex))
     finally:
         connection.shutdown(socket.SHUT_RDWR)
         connection.close()
@@ -101,10 +93,6 @@ def remote_control(address):
             msg = connection.recv(1024).decode()
             command = commands[msg]
             command()
-    except KeyboardInterrupt:
-        printout('KeyboardInterrupt')
-    except Exception as ex:
-        printout(repr(ex))
     finally:
         connection.shutdown(socket.SHUT_RDWR)
         connection.close()
@@ -118,10 +106,6 @@ def new_server(address):
     server.bind(address)
     server.listen(0)
     return server
-
-
-def printout(msg):
-    sys.stdout.write('[{}]: {}\n'.format(current_process().name, msg))
 
 
 if __name__ == '__main__':

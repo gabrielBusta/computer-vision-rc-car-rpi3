@@ -2,16 +2,6 @@ import cv2
 import socket
 from time import sleep
 from settings import *
-import unittest
-
-
-class TestVideo(unittest.TestCase):
-
-    def testCapture(self):
-        video = cv2.VideoCapture('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT))
-
-if __name__ == '__main__':
-    unittest.main()
 
 
 def main():

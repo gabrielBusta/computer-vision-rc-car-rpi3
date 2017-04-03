@@ -29,18 +29,18 @@ from settings import *
 
 
 def main():
-    processes = []
-    processes.append(Process(target=camera,
-                             name='camera',
-                             args=(('', CAMERA_PORT),)))
-    processes.append(Process(target=ultrasonic_sensor,
-                             name='ultrasonic sensor',
-                             args=(('', ULTRASONIC_SENSOR_PORT),)))
-    processes.append(Process(target=remote_control,
-                             name='remote control',
-                             args=(('', REMOTE_CONTROL_PORT),)))
-    for process in processes:
-        process.start()
+    workers = []
+    workers.append(Process(target=camera,
+                           name='Camera',
+                           args=(('', CAMERA_PORT),)))
+    workers.append(Process(target=ultrasonic_sensor,
+                           name='UltrasonicSensor',
+                           args=(('', ULTRASONIC_SENSOR_PORT),)))
+    workers.append(Process(target=remote_control,
+                           name='RemoteControl',
+                           args=(('', REMOTE_CONTROL_PORT),)))
+    for worker in workers:
+        worker.start()
 
 
 def camera(address):
@@ -48,10 +48,10 @@ def camera(address):
     connection, _ = server.accept()
     stream = connection.makefile('wb')
     camera = PiCamera()
-    camera.framerate = CAMERA_SETTINGS['FRAMERATE']
-    camera.resolution = CAMERA_SETTINGS['RESOLUTION']
-    camera.rotation = CAMERA_SETTINGS['ROTATION']
-    camera.start_recording(stream, format=CAMERA_SETTINGS['FORMAT'])
+    camera.framerate = CAMERA_FRAMERATE
+    camera.resolution = CAMERA_RESOLUTION
+    camera.rotation = CAMERA_ROTATION
+    camera.start_recording(stream, format=CAMERA_VIDEO_FORMAT)
     try:
         while True:
             camera.wait_recording(1)

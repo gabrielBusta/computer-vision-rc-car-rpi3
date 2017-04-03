@@ -19,14 +19,19 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 """
-DEBUG = False
 ROBOT_IP = '192.168.1.107'
-ULTRASONIC_SENSOR_PORT = 8005
+
+DEBUG = False
+
+CAMERA_OFF = True
+ULTRASONIC_SENSOR_OFF = True
+REMOTE_CONTROL_OFF = True
+
 CAMERA_PORT = 8000
+ULTRASONIC_SENSOR_PORT = 8005
 REMOTE_CONTROL_PORT = 8010
-CAMERA_SETTINGS = {
-    'FRAMERATE': 32,
-    'RESOLUTION': (640, 480),
-    'ROTATION': 180,
-    'FORMAT': 'h264'
-}
+
+CAMERA_FRAMERATE = 32,
+CAMERA_RESOLUTION = (640, 480),
+CAMERA_VIDEO_FORMAT = 'h264'
+CAMERA_ROTATION = 180

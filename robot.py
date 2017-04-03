@@ -125,4 +125,6 @@ def printout(msg):
 
 
 if __name__ == '__main__':
+    if not DEBUG:
+        sys.tracebacklimit = 0
     main()

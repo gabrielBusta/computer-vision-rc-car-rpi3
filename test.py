@@ -23,6 +23,7 @@ def main():
             print(streaming)
             print(frame)
             cv2.imshow(ROBOT_IP, frame)
+            key = cv2.waitKey(1)
             streaming, frame = video.read()
     finally:
         video.release()

@@ -19,6 +19,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 """
+DEBUG = False
 ROBOT_IP = '192.168.1.107'
 ULTRASONIC_SENSOR_PORT = 8005
 CAMERA_PORT = 8000

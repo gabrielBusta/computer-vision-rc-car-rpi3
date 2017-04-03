@@ -28,23 +28,28 @@ from picamera import PiCamera
 from settings import *
 
 
+exit_flag = Event()
+
+
 def main():
     workers = []
-    workers.append(Process(target=camera,
-                           name='Camera',
-                           args=(('', CAMERA_PORT),)))
-    workers.append(Process(target=ultrasonic_sensor,
-                           name='UltrasonicSensor',
-                           args=(('', ULTRASONIC_SENSOR_PORT),)))
-    workers.append(Process(target=remote_control,
-                           name='RemoteControl',
-                           args=(('', REMOTE_CONTROL_PORT),)))
+
+    if CAMERA_ON:
+        workers.append(Process(target=stream_camera,
+                               name='CameraProcess'))
+    if ULTRASONIC_SENSOR_ON:
+        workers.append(Process(target=stream_ultrasonic_sensor,
+                               name='UltrasonicSensorProcess'))
+    if REMOTE_CONTROL_ON:
+        workers.append(Process(target=listen_to_remote_control,
+                               name='RemoteControlProcess'))
+
     for worker in workers:
         worker.start()
 
 
-def camera(address):
-    server = new_server(address)
+def stream_camera():
+    server = new_server(('', CAMERA_PORT))
     connection, _ = server.accept()
     stream = connection.makefile('wb')
     camera = PiCamera()
@@ -63,8 +68,8 @@ def camera(address):
         server.close()
 
 
-def ultrasonic_sensor(address):
-    server = new_server(address)
+def stream_ultrasonic_sensor():
+    server = new_server(('', ULTRASONIC_SENSOR_PORT))
     connection, _ = server.accept()
     try:
         while True:
@@ -78,7 +83,7 @@ def ultrasonic_sensor(address):
         server.close()
 
 
-def remote_control(address):
+def listen_to_remote_control():
     commands = {
         'fwd': gopigo.fwd,
         'bwd': gopigo.bwd,
@@ -86,7 +91,7 @@ def remote_control(address):
         'right': gopigo.right,
         'stop': gopigo.stop
     }
-    server = new_server(address)
+    server = new_server(('', REMOTE_CONTROL_PORT))
     connection, _ = server.accept()
     try:
         while True:

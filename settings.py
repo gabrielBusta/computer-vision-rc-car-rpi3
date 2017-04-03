@@ -21,11 +21,11 @@ along with this program. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 """
 ROBOT_IP = '192.168.1.107'
 
-DEBUG = True
+DEBUG = False
 
-CAMERA_OFF = True
-ULTRASONIC_SENSOR_OFF = True
-REMOTE_CONTROL_OFF = True
+CAMERA_ON = True
+ULTRASONIC_SENSOR_ON = True
+REMOTE_CONTROL_ON = True
 
 CAMERA_PORT = 8000
 ULTRASONIC_SENSOR_PORT = 8005

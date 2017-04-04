@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Author: Gabriel Bustamante
-Email: gabrielbusta@gmail.com
+Adapted from:
+Howse, Joseph. OpenCV computer vision with Python.
+Birmingham: Packt Publishing, 2013.
+www.safaribooksonline.com.
 
 Selfdriving GoPiGo: An open source self-driving robot application.
 This app was built using the GoPiGo robotics platform for the Raspberry Pi.
@@ -19,74 +21,53 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 """
-import cv2
-import socket
 import sys
-import numpy as np
-from multiprocessing import Process
+import cv2
 from settings import *
-from math import floor
+from managers import PygameWindowManager as WindowManager, CaptureManager
 
 
-def main():
-    workers = []
+class App(object):
+    def __init__(self, video_source):
+        self._windowManager = WindowManager(video_source, self.onKeypress)
+        capture = cv2.VideoCapture(video_source)
+        self._captureManager = CaptureManager(capture, self._windowManager, True)
 
-    if CAMERA_ON:
-        workers.append(Process(target=vision,
-                               name='VisionProcess'))
-    if ULTRASONIC_SENSOR_ON:
-        workers.append(Process(target=ultrasonic_sense,
-                               name='UltrasonicSenseProcess'))
+    def run(self):
+        """Run the main loop."""
+        self._windowManager.createWindow()
+        while self._windowManager.isWindowCreated:
+            self._captureManager.enterFrame()
+            frame = self._captureManager.frame
 
-    for worker in workers:
-        worker.start()
+            if frame is not None:
+                # TODO: Filter the frame (Chapter 3).
+                pass
 
+            self._captureManager.exitFrame()
+            self._windowManager.processEvents()
 
-def ultrasonic_sense():
-    connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    connection.connect((ROBOT_IP, ULTRASONIC_SENSOR_PORT))
-    try:
-        message = connection.recv(1024).decode()
-        # the first few messages might be the empty string.
-        while not message:
-            message = connection.recv(1024).decode()
-        while True:
-            message = connection.recv(1024).decode()
-            # when the ultrasonic sensor stream stops it sends an empty string.
-            if not message:
-                break
-            distance = int(message)
-    finally:
-        connection.shutdown(socket.SHUT_RDWR)
-        connection.close()
+    def onKeypress(self, keycode):
+        """Handle a keypress.
 
+        space  -> Take a screenshot.
+        tab    -> Start/stop recording a screencast.
+        escape -> Quit.
 
-def vision():
-    video = cv2.VideoCapture('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT))
-    cv2.namedWindow(ROBOT_IP, cv2.WINDOW_NORMAL)
-    try:
-        streaming, frame = video.read()
-        while streaming:
-            drawbanner(frame)
-            cv2.imshow(ROBOT_IP, frame)
-            cv2.waitKey(1)
-            streaming, frame = video.read()
-    finally:
-        video.release()
-        cv2.destroyAllWindows()
-
-
-def drawbanner(frame):
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    color = (255, 255, 255)
-    scale = 1
-    thickness = 2
-    text = 'Selfdriving GoPiGo'
-    pos = (175, 450)
-    cv2.putText(frame, text, pos, font, scale, color, thickness, cv2.LINE_AA)
+        """
+        if keycode == 32: # space
+            self._captureManager.writeImage('screenshot.png')
+        elif keycode == 9: # tab
+            if not self._captureManager.isWritingVideo:
+                self._captureManager.startWritingVideo(
+                    'screencast.avi')
+            else:
+                self._captureManager.stopWritingVideo()
+        elif keycode == 27: # escape
+            self._windowManager.destroyWindow()
 
 
 if __name__ == '__main__':
     if not DEBUG:
         sys.tracebacklimit = 0
-    main()
+    App('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT)).run()

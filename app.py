@@ -22,8 +22,10 @@ along with this program. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 import cv2
 import socket
 import sys
+import numpy as np
 from multiprocessing import Process
 from settings import *
+from math import floor
 
 
 def main():
@@ -65,12 +67,23 @@ def vision():
     try:
         streaming, frame = video.read()
         while streaming:
+            drawbanner(frame)
             cv2.imshow(ROBOT_IP, frame)
             cv2.waitKey(1)
             streaming, frame = video.read()
     finally:
         video.release()
         cv2.destroyAllWindows()
+
+
+def drawbanner(frame):
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    color = (255, 255, 255)
+    scale = 1
+    thickness = 2
+    text = 'Selfdriving GoPiGo'
+    pos = (175, 450)
+    cv2.putText(frame, text, pos, font, scale, color, thickness, cv2.LINE_AA)
 
 
 if __name__ == '__main__':

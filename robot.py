@@ -23,7 +23,7 @@ import socket
 import gopigo
 import time
 import sys
-import pygame
+from curses import wrapper
 from multiprocessing import Process, Event
 from picamera import PiCamera
 from settings import *
@@ -32,7 +32,16 @@ from settings import *
 exit_flag = Event()
 
 
-def main():
+banner =
+'''
+,---.     |    ,---.    |     o      o              ,---.     ,---.o,---.
+`---.,---.|    |__. ,---|,---...    ,.,---.,---.    |  _.,---.|---'.|  _.,---.
+    ||---'|    |    |   ||    | \  / ||   ||   |    |   ||   ||    ||   ||   |
+`---'`---'`---'`    `---'`    `  `'  ``   '`---|    `---'`---'`    ``---'`---'
+'''
+
+
+def main(stdscr):
     workers = []
 
     if CAMERA_ON:
@@ -48,16 +57,16 @@ def main():
     for worker in workers:
         worker.start()
 
-    sys.stdout.write('Press SPACE to quit... ')
-
+    stdscr.addstr(0, 0, banner)
+    stdscr.addstr(0, 5, 'Hit SPACE to quit... ')
+    stdscr.refresh()
     while not exit_flag.is_set():
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_SPACE]:
+        c = stdscr.getch()
+        if c == ord(' '):
+            stdscr.refresh()
             exit_flag.set()
             for worker in workers:
                 worker.join()
-
-    sys.stdout.write('ok\n')
 
 
 def camera_streamer():
@@ -129,4 +138,4 @@ def new_server(address):
 if __name__ == '__main__':
     if not DEBUG:
         sys.tracebacklimit = 0
-    main()
+    wrapper(main)

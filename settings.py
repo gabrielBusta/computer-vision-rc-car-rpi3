@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Author: Gabriel Bustamante
@@ -25,7 +25,7 @@ DEBUG = False
 
 CAMERA_ON = True
 ULTRASONIC_SENSOR_ON = True
-REMOTE_CONTROL_ON = True
+REMOTE_CONTROL_ON = False
 
 CAMERA_PORT = 8000
 ULTRASONIC_SENSOR_PORT = 8005

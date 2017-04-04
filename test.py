@@ -31,7 +31,7 @@ def main():
         while not distance:
             distance = ultrasonic_sensor.recv(1024).decode()
         if distance:
-            sys.stdout.write('ok (distance = {})\n', distance)
+            sys.stdout.write('ok\n')
         ultrasonic_sensor.shutdown(socket.SHUT_RDWR)
         ultrasonic_sensor.close()
 
@@ -39,8 +39,8 @@ def main():
         sys.stdout.write('Testing camera... ')
         video = cv2.VideoCapture('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT))
         streaming, frame = video.read()
-        if streaming and frame:
-            sys.stdout.write('ok (frame = {})\n', frame)
+        if streaming:
+            sys.stdout.write('ok\n')
         video.release()
 
 

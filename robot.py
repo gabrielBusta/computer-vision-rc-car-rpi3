@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Author: Gabriel Bustamante
@@ -23,7 +23,8 @@ import socket
 import gopigo
 import time
 import sys
-from multiprocessing import Process, Event, current_process
+import pygame
+from multiprocessing import Process, Event
 from picamera import PiCamera
 from settings import *
 
@@ -35,20 +36,31 @@ def main():
     workers = []
 
     if CAMERA_ON:
-        workers.append(Process(target=stream_camera,
-                               name='CameraProcess'))
+        workers.append(Process(target=camera_streamer,
+                               name='CameraStreamProcess'))
     if ULTRASONIC_SENSOR_ON:
-        workers.append(Process(target=stream_ultrasonic_sensor,
-                               name='UltrasonicSensorProcess'))
+        workers.append(Process(target=ultrasonic_sensor_streamer,
+                               name='UltrasonicSensorStreamProcess'))
     if REMOTE_CONTROL_ON:
-        workers.append(Process(target=listen_to_remote_control,
-                               name='RemoteControlProcess'))
+        workers.append(Process(target=remote_control_listener,
+                               name='RemoteControlListenerProcess'))
 
     for worker in workers:
         worker.start()
 
+    sys.stdout.write('Press SPACE to quit... ')
 
-def stream_camera():
+    while not exit_flag.is_set():
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_SPACE]:
+            exit_flag.set()
+            for worker in workers:
+                worker.join()
+
+    sys.stdout.write('ok\n')
+
+
+def camera_streamer():
     server = new_server(('', CAMERA_PORT))
     connection, _ = server.accept()
     stream = connection.makefile('wb')
@@ -58,7 +70,7 @@ def stream_camera():
     camera.rotation = CAMERA_ROTATION
     camera.start_recording(stream, format=CAMERA_VIDEO_FORMAT)
     try:
-        while True:
+        while not exit_flag.is_set():
             camera.wait_recording(1)
     finally:
         camera.close()
@@ -68,13 +80,14 @@ def stream_camera():
         server.close()
 
 
-def stream_ultrasonic_sensor():
+def ultrasonic_sensor_streamer():
     server = new_server(('', ULTRASONIC_SENSOR_PORT))
     connection, _ = server.accept()
     try:
-        while True:
-            distance = str(gopigo.us_dist(gopigo.analogPort))
-            connection.send(distance.encode())
+        while not exit_flag.is_set():
+            distance = gopigo.us_dist(gopigo.analogPort)
+            message = str(distance)
+            connection.send(message.encode())
             time.sleep(0.1)
     finally:
         connection.shutdown(socket.SHUT_RDWR)
@@ -83,7 +96,7 @@ def stream_ultrasonic_sensor():
         server.close()
 
 
-def listen_to_remote_control():
+def remote_control_listener():
     commands = {
         'fwd': gopigo.fwd,
         'bwd': gopigo.bwd,
@@ -94,9 +107,9 @@ def listen_to_remote_control():
     server = new_server(('', REMOTE_CONTROL_PORT))
     connection, _ = server.accept()
     try:
-        while True:
-            msg = connection.recv(1024).decode()
-            command = commands[msg]
+        while not exit_flag.is_set():
+            message = connection.recv(1024).decode()
+            command = commands[message]
             command()
     finally:
         connection.shutdown(socket.SHUT_RDWR)

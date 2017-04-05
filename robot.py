@@ -23,7 +23,7 @@ import socket
 import gopigo
 import time
 import sys
-from curses import wrapper
+from curses import wrapper, A_BOLD
 from multiprocessing import Process, Event, Lock
 from picamera import PiCamera
 from settings import *
@@ -35,11 +35,11 @@ exit_flag = Event()
 
 
 banner = '''
- _____     _ ___    ____      _     _            _____     _____ _ _____
-|   __|___| |  _|  |    \ ___|_|_ _|_|___ ___   |   __|___|  _  |_|   __|___
-|__   | -_| |  _|  |  |  |  _| | | | |   | . |  |  |  | . |   __| |  |  | . |
-|_____|___|_|_|    |____/|_| |_|\_/|_|_|_|_  |  |_____|___|__|  |_|_____|___|
-                                         |___|
+  _____     _ ___    ____      _     _            _____     _____ _ _____
+ |   __|___| |  _|  |    \ ___|_|_ _|_|___ ___   |   __|___|  _  |_|   __|___
+ |__   | -_| |  _|  |  |  |  _| | | | |   | . |  |  |  | . |   __| |  |  | . |
+ |_____|___|_|_|    |____/|_| |_|\_/|_|_|_|_  |  |_____|___|__|  |_|_____|___|
+                                          |___|
 '''
 
 
@@ -59,7 +59,7 @@ def main(stdscr):
     for worker in workers:
         worker.start()
 
-    stdscr.addstr(0, 0, banner)
+    stdscr.addstr(0, 0, banner, A_BOLD)
     stdscr.addstr(7, 1, 'Hit SPACE to quit...')
     stdscr.refresh()
     # Run the main loop.

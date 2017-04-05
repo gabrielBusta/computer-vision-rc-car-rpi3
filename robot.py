@@ -24,7 +24,7 @@ import gopigo
 import time
 import sys
 from curses import wrapper
-from multiprocessing import Process, Event
+from multiprocessing import Process, Event, Lock
 from picamera import PiCamera
 from settings import *
 
@@ -34,11 +34,18 @@ from settings import *
 exit_flag = Event()
 
 
+printLock = Lock()
+def safeprint(*args, **kwargs):
+  with printLock:
+    print (*args, **kwargs)
+
+
 banner = '''
- ,---.     |    ,---.    |     o      o              ,---.     ,---.o,---.
- `---.,---.|    |__. ,---|,---...    ,.,---.,---.    |  _.,---.|---'.|  _.,---.
-     ||---'|    |    |   ||    | \  / ||   ||   |    |   ||   ||    ||   ||   |
- `---'`---'`---'`    `---'`    `  `'  ``   '`---|    `---'`---'`    ``---'`---'
+ _____     _ ___    ____      _     _            _____     _____ _ _____
+|   __|___| |  _|  |    \ ___|_|_ _|_|___ ___   |   __|___|  _  |_|   __|___
+|__   | -_| |  _|  |  |  |  _| | | | |   | . |  |  |  | . |   __| |  |  | . |
+|_____|___|_|_|    |____/|_| |_|\_/|_|_|_|_  |  |_____|___|__|  |_|_____|___|
+                                         |___|
 '''
 
 
@@ -59,7 +66,7 @@ def main(stdscr):
         worker.start()
 
     stdscr.addstr(0, 0, banner)
-    stdscr.addstr(6, 1, 'Hit SPACE to quit...')
+    stdscr.addstr(7, 1, 'Hit SPACE to quit...')
     stdscr.refresh()
     # Run the main loop.
     while not exit_flag.is_set():

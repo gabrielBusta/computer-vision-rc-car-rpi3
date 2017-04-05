@@ -19,7 +19,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 """
-ROBOT_IP = '192.168.42.15'
+ROBOT_IP = '192.168.1.107'
+# ROBOT_IP = '192.168.42.15'
 
 DEBUG = False
 

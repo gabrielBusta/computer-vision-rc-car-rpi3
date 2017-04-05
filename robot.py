@@ -30,7 +30,7 @@ from settings import *
 
 
 # Each subprocess forked from the main process
-# is given a reference to this flag.
+# is given a reference to this exit flag.
 exit_flag = Event()
 
 

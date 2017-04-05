@@ -5,7 +5,6 @@ Based on the OpenCV application design described in:
 Howse, Joseph. "Appendix A: Integrating Pygame".
 OpenCV computer vision with Python.
 Birmingham: Packt Publishing, 2013.
-www.safaribooksonline.com.
 
 Selfdriving GoPiGo: An open source self-driving robot application.
 This app was built using the GoPiGo robotics platform for the Raspberry Pi.
@@ -50,18 +49,15 @@ class App(object):
 
     def onKeypress(self, keycode):
         """Handle a keypress.
-
         space  -> Take a screenshot.
         tab    -> Start/stop recording a screencast.
         escape -> Quit.
-
         """
         if keycode == 32: # space
             self._captureManager.writeImage('screenshot.png')
         elif keycode == 9: # tab
             if not self._captureManager.isWritingVideo:
-                self._captureManager.startWritingVideo(
-                    'screencast.avi')
+                self._captureManager.startWritingVideo('screencast.avi')
             else:
                 self._captureManager.stopWritingVideo()
         elif keycode == 27: # escape

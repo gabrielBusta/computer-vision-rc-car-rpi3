@@ -5,7 +5,6 @@ Based on the OpenCV application design described in:
 Howse, Joseph. "Appendix A: Integrating Pygame".
 OpenCV computer vision with Python.
 Birmingham: Packt Publishing, 2013.
-www.safaribooksonline.com.
 
 Selfdriving GoPiGo: An open source self-driving robot application.
 This app was built using the GoPiGo robotics platform for the Raspberry Pi.
@@ -30,9 +29,7 @@ import utils
 
 
 class CaptureManager(object):
-    def __init__(self, capture, previewWindowManager = None,
-                 shouldMirrorPreview = False):
-
+    def __init__(self, capture, previewWindowManager = None, shouldMirrorPreview = False):
         self.previewWindowManager = previewWindowManager
         self.shouldMirrorPreview = shouldMirrorPreview
 
@@ -121,9 +118,7 @@ class CaptureManager(object):
         """Write the next exited frame to an image file."""
         self._imageFilename = filename
 
-    def startWritingVideo(
-            self, filename,
-            encoding = cv2.VideoWriter_fourcc('M','J','P','G')):
+    def startWritingVideo(self, filename, encoding = cv2.VideoWriter_fourcc('M','J','P','G')):
         """Start writing exited frames to a video file."""
         self._videoFilename = filename
         self._videoEncoding = encoding
@@ -148,14 +143,14 @@ class CaptureManager(object):
                     return
                 else:
                     fps = self._fpsEstimate
-            size = (int(self._capture.get(
-                        cv2.cv.CV_CAP_PROP_FRAME_WIDTH)),
-                    int(self._capture.get(
-                        cv2.cv.CV_CAP_PROP_FRAME_HEIGHT)))
-            self._videoWriter = cv2.VideoWriter(
-                self._videoFilename, self._videoEncoding,
-                fps, size)
 
+            size = (int(self._capture.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH)),
+                    int(self._capture.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT)))
+
+            self._videoWriter = cv2.VideoWriter(self._videoFilename,
+                                                self._videoEncoding,
+                                                fps,
+                                                size)
         self._videoWriter.write(self._frame)
 
 
@@ -203,11 +198,11 @@ class PygameWindowManager(WindowManager):
             conversionType = cv2.COLOR_GRAY2RGB
         else:
             conversionType = cv2.COLOR_BGR2RGB
+
         rgbFrame = cv2.cvtColor(frame, conversionType)
 
         # Convert the frame to Pygame's Surface type.
-        pygameFrame = pygame.image.frombuffer(
-            rgbFrame.tostring(), frameSize, 'RGB')
+        pygameFrame = pygame.image.frombuffer(rgbFrame.tostring(), frameSize, 'RGB')
 
         # Resize the window to match the frame.
         displaySurface = pygame.display.set_mode(frameSize)
@@ -222,8 +217,7 @@ class PygameWindowManager(WindowManager):
 
     def processEvents(self):
         for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN and \
-                    self.keypressCallback is not None:
+            if event.type == pygame.KEYDOWN and self.keypressCallback is not None:
                 self.keypressCallback(event.key)
             elif event.type == pygame.QUIT:
                 self.destroyWindow()

@@ -29,6 +29,8 @@ from picamera import PiCamera
 from settings import *
 
 
+# Each subprocess forked from the main process
+# is given a reference to this flag.
 exit_flag = Event()
 
 
@@ -59,6 +61,7 @@ def main(stdscr):
     stdscr.addstr(0, 0, banner)
     stdscr.addstr(6, 1, 'Hit SPACE to quit...')
     stdscr.refresh()
+    # Run the main loop.
     while not exit_flag.is_set():
         c = stdscr.getch()
         if c == ord(' '):

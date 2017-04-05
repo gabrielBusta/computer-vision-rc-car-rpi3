@@ -34,12 +34,6 @@ from settings import *
 exit_flag = Event()
 
 
-printLock = Lock()
-def safeprint(*args, **kwargs):
-  with printLock:
-    print (*args, **kwargs)
-
-
 banner = '''
  _____     _ ___    ____      _     _            _____     _____ _ _____
 |   __|___| |  _|  |    \ ___|_|_ _|_|___ ___   |   __|___|  _  |_|   __|___

@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Based on the OpenCV application design described in:
-Howse, Joseph. "Appendix A: Integrating Pygame".
-OpenCV computer vision with Python.
-Birmingham: Packt Publishing, 2013.
+The following code is based on the design described by Joseph Howse
+in "Appendix A: Integrating Pygame" of "OpenCV computer vision with Python"
+(Birmingham: Packt Publishing, 2013).
 
 Selfdriving GoPiGo: An open source self-driving robot application.
 This app was built using the GoPiGo robotics platform for the Raspberry Pi.

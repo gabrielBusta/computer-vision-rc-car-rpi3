@@ -133,7 +133,7 @@ class CaptureManager(object):
             return
 
         if self._videoWriter is None:
-            fps = self._capture.get(cv2.CV_CAP_PROP_FPS)
+            fps = self._capture.get(cv2.CAP_PROP_FPS)
             if fps <= 0.0:
                 # The capture's FPS is unknown so use an estimate.
                 if self._framesElapsed < 20:
@@ -184,6 +184,12 @@ class WindowManager(object):
 
 
 class PygameWindowManager(WindowManager):
+    def __init__(self, windowName, keypressCallback = None):
+        super().__init__(windowName, keypressCallback)
+        self.screenCast = pygame.image.load('screen-cast-small.png')
+        self.screenShot = pygame.image.load('screen-shot-small.png')
+        self.banner = pygame.image.load('banner.png')
+
     def createWindow(self):
         pygame.display.init()
         pygame.display.set_caption(self._windowName)
@@ -208,6 +214,10 @@ class PygameWindowManager(WindowManager):
 
         # Blit and display the frame.
         displaySurface.blit(pygameFrame, (0, 0))
+        displaySurface.blit(self.banner, (21, 400))
+        displaySurface.blit(self.screenShot, (640, 10))
+        displaySurface.blit(self.screenCast, (560, 10))
+
         pygame.display.flip()
 
     def destroyWindow(self):

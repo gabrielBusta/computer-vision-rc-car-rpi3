@@ -29,6 +29,8 @@ from managers import PygameWindowManager as WindowManager, CaptureManager
 class App(object):
     def __init__(self, video_source):
         self._windowManager = WindowManager(video_source, self.onKeypress)
+        self._screenshot_count = 0
+        self._screencast_count = 0
         capture = cv2.VideoCapture(video_source)
         self._captureManager = CaptureManager(capture, self._windowManager, True)
 
@@ -53,12 +55,15 @@ class App(object):
         escape -> Quit.
         """
         if keycode == 32: # space
-            self._captureManager.writeImage('screenshot.png')
+            # self._captureManager.writeImage('screenshot-{}.png'.format(self._screenshot_count))
+            self._screenshot_count += 1
         elif keycode == 9: # tab
             if not self._captureManager.isWritingVideo:
-                self._captureManager.startWritingVideo('screencast.avi')
+                # self._captureManager.startWritingVideo('screencast-{}.avi'.format(self._screencast_count))
+                self._screencast_count += 1
             else:
-                self._captureManager.stopWritingVideo()
+                pass
+                # self._captureManager.stopWritingVideo()
         elif keycode == 27: # escape
             self._windowManager.destroyWindow()
 

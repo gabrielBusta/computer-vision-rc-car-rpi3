@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-The following code is based on the design described by Joseph Howse in
+The following code is based on a design described by Joseph Howse in
 OpenCV Computer Vision with Python (Birmingham: Packt Publishing, 2013).
 See Appendix A (Integrating Pygame).
 

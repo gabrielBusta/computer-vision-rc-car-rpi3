@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-The following code is based on the design described by Joseph Howse in
+The following code is based on a design described by Joseph Howse in
 OpenCV Computer Vision with Python (Birmingham: Packt Publishing, 2013).
 See Appendix A (Integrating Pygame).
 
@@ -40,7 +40,7 @@ class App(object):
             frame = self._captureManager.frame
 
             if frame is not None:
-                # TODO: Filter the frame (Chapter 3).
+                # TODO: Filter the frame
                 pass
 
             self._captureManager.exitFrame()
@@ -66,4 +66,7 @@ class App(object):
 if __name__ == '__main__':
     if not DEBUG:
         sys.tracebacklimit = 0
-    App('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT)).run()
+
+    url = 'tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT)
+    app = App(url)
+    app.run()

@@ -21,8 +21,36 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 """
 import cv2
-import numpy
+import numpy as np
 import scipy.interpolate
+
+
+def anglecos(p0, p1, p2):
+        d1, d2 = (p0-p1).astype('float'), (p2-p1).astype('float')
+        return abs( np.dot(d1, d2) / np.sqrt( np.dot(d1, d1)*np.dot(d2, d2) ) )
+
+
+def detectSquares(frame):
+    frame = cv2.GaussianBlur(frame, (5, 5), 0)
+    squares = []
+    for gray in cv2.split(frame):
+        for thrs in range(0, 255, 26):
+            if thrs == 0:
+                bin = cv2.Canny(gray, 0, 50, apertureSize=5)
+                bin = cv2.dilate(bin, None)
+            else:
+                retval, bin = cv2.threshold(gray, thrs, 255, cv2.THRESH_BINARY)
+            bin, contours, hierarchy = cv2.findContours(bin, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+            for cnt in contours:
+                cnt_len = cv2.arcLength(cnt, True)
+                cnt = cv2.approxPolyDP(cnt, 0.02*cnt_len, True)
+                if len(cnt) == 4 and cv2.contourArea(cnt) > 1000 and cv2.isContourConvex(cnt):
+                    cnt = cnt.reshape(-1, 2)
+                    max_cos = np.max([anglecos( cnt[i], cnt[(i+1) % 4], cnt[(i+2) % 4] ) for i in range(4)])
+                    if max_cos < 0.1:
+                        squares.append(cnt)
+    return squares
+
 
 
 def createFlatView(array):
@@ -39,7 +67,7 @@ def createLookupArray(func, length = 256):
     """
     if func is None:
         return None
-    lookupArray = numpy.empty(length)
+    lookupArray = np.empty(length)
     i = 0
     while i < length:
         func_i = func(i)

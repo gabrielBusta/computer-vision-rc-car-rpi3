@@ -26,6 +26,7 @@ import numpy as np
 from multiprocessing import Process
 from settings import *
 from math import floor
+from utils import detectSquares
 
 
 def main():
@@ -67,6 +68,9 @@ def vision():
     try:
         streaming, frame = video.read()
         while streaming:
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            squares = detectSquares(gray)
+            cv2.drawContours(frame, squares, -1, (0, 255, 0), 3)
             drawbanner(frame)
             cv2.imshow(ROBOT_IP, frame)
             cv2.waitKey(1)

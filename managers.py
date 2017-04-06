@@ -186,9 +186,9 @@ class WindowManager(object):
 class PygameWindowManager(WindowManager):
     def __init__(self, windowName, keypressCallback = None):
         super().__init__(windowName, keypressCallback)
-        self.screenCast = pygame.image.load('screen-cast-small.png')
-        self.screenShot = pygame.image.load('screen-shot-small.png')
-        self.banner = pygame.image.load('banner.png')
+        self.screenCast = pygame.image.load('./img/screen-cast-small.png')
+        self.screenShot = pygame.image.load('./img/screen-shot-small.png')
+        self.banner = pygame.image.load('./img/banner.png')
 
     def createWindow(self):
         pygame.display.init()

@@ -100,7 +100,6 @@ def ultrasonic_sensor_streamer():
             distance = gopigo.us_dist(gopigo.analogPort)
             message = str(distance)
             connection.send(message.encode())
-            time.sleep(0.1)
     finally:
         connection.shutdown(socket.SHUT_RDWR)
         connection.close()
@@ -121,6 +120,8 @@ def remote_control_listener():
     try:
         while not exit_flag.is_set():
             message = connection.recv(1024).decode()
+            if not message:
+                break
             command = commands[message]
             command()
     finally:

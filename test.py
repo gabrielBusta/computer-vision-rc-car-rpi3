@@ -22,16 +22,11 @@ along with this program. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 import cv2
 import socket
 import sys
+import os
 import numpy as np
-from multiprocessing import Process, Lock
-from remote import RemoteController
+from multiprocessing import Process
 from settings import *
 
-
-remoteLock = Lock()
-remote = RemoteController((ROBOT_IP, REMOTE_CONTROL_PORT))
-remote.connect()
-remote.close()
 
 def main():
     workers = []

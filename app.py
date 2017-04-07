@@ -33,6 +33,7 @@ remote = RemoteController((ROBOT_IP, REMOTE_CONTROL_PORT))
 remote.connect()
 remote.close()
 
+
 def main():
     workers = []
 
@@ -66,13 +67,10 @@ def ultrasonic_sense():
         connection.close()
 
 
-def label(frame):
-    pass
-
-
 def vision():
-    face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-    eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
+    face_cascade = cv2.CascadeClassifier('stop-sign-haar-cascade.xml')
+    # face_cascade = cv2.CascadeClassifier('speedsigncascade.xml')
+    # eye_cascade = cv2.CascadeClassifier('lbpsigncascade.xml')
     video = cv2.VideoCapture('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT))
     cv2.namedWindow(ROBOT_IP, cv2.WINDOW_NORMAL)
     try:
@@ -82,11 +80,11 @@ def vision():
             faces = face_cascade.detectMultiScale(gray, 1.3, 5)
             for (x,y,w,h) in faces:
                 cv2.rectangle(frame, (x,y), (x+w,y+h), (255,0,0), 2)
-                roi_gray = gray[y:y+h, x:x+w]
-                roi_color = frame[y:y+h, x:x+w]
-                eyes = eye_cascade.detectMultiScale(roi_gray)
-                for (ex,ey,ew,eh) in eyes:
-                    cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
+                # roi_gray = gray[y:y+h, x:x+w]
+                # roi_color = frame[y:y+h, x:x+w]
+                # eyes = eye_cascade.detectMultiScale(roi_gray)
+                # for (ex,ey,ew,eh) in eyes:
+                    # cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
             drawbanner(frame)
             cv2.imshow(ROBOT_IP, frame)
             cv2.waitKey(1)

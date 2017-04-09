@@ -28,10 +28,9 @@ from remote import RemoteController
 from settings import *
 
 
-remoteLock = Lock()
-remote = RemoteController((ROBOT_IP, REMOTE_CONTROL_PORT))
-remote.connect()
-remote.close()
+remote_control_lock = Lock()
+remote_control = RemoteController((ROBOT_IP, REMOTE_CONTROL_PORT))
+remote_control.connect()
 
 
 def main():
@@ -46,6 +45,11 @@ def main():
 
     for worker in workers:
         worker.start()
+
+    for worker in workers:
+        worker.join()
+
+    remote_control.close()
 
 
 def ultrasonic_sense():
@@ -68,23 +72,26 @@ def ultrasonic_sense():
 
 
 def vision():
-    face_cascade = cv2.CascadeClassifier('stop-sign-haar-cascade.xml')
-    # face_cascade = cv2.CascadeClassifier('speedsigncascade.xml')
-    # eye_cascade = cv2.CascadeClassifier('lbpsigncascade.xml')
+    speed_sign_cascade = cv2.CascadeClassifier('speed-sign-haar-cascade.xml')
+    stop_sign_cascade = cv2.CascadeClassifier('stop-sign-cascade.xml')
     video = cv2.VideoCapture('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT))
     cv2.namedWindow(ROBOT_IP, cv2.WINDOW_NORMAL)
     try:
+        with remote_control_lock:
+            remote_control.fwd()
         streaming, frame = video.read()
         while streaming:
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            faces = face_cascade.detectMultiScale(gray, 1.3, 5)
-            for (x,y,w,h) in faces:
-                cv2.rectangle(frame, (x,y), (x+w,y+h), (255,0,0), 2)
-                # roi_gray = gray[y:y+h, x:x+w]
-                # roi_color = frame[y:y+h, x:x+w]
-                # eyes = eye_cascade.detectMultiScale(roi_gray)
-                # for (ex,ey,ew,eh) in eyes:
-                    # cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
+            blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+            speed_signs = speed_sign_cascade.detectMultiScale(blurred, 1.3, 5)
+            stop_signs = stop_sign_cascade.detectMultiScale(blurred, 1.3, 5)
+            for x, y, w, h in speed_signs:
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                roi_blurred = blurred[y:y+h, x:x+w]
+            for x, y, w, h in stop_signs:
+                with remote_control_lock:
+                    remote_control.stop()
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
             drawbanner(frame)
             cv2.imshow(ROBOT_IP, frame)
             cv2.waitKey(1)

@@ -28,11 +28,6 @@ from remote import RemoteController
 from settings import *
 
 
-remote_control_lock = Lock()
-remote_control = RemoteController((ROBOT_IP, REMOTE_CONTROL_PORT))
-remote_control.connect()
-
-
 def main():
     workers = []
 
@@ -48,8 +43,6 @@ def main():
 
     for worker in workers:
         worker.join()
-
-    remote_control.close()
 
 
 def ultrasonic_sense():
@@ -76,10 +69,8 @@ def vision():
     stop_sign_cascade = cv2.CascadeClassifier('stop-sign-cascade.xml')
     video = cv2.VideoCapture('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT))
     cv2.namedWindow(ROBOT_IP, cv2.WINDOW_NORMAL)
-    stopped = False
+    cv2.namedWindow('ROI', cv2.WINDOW_NORMAL)
     try:
-        with remote_control_lock:
-            remote_control.fwd()
         streaming, frame = video.read()
         while streaming:
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -89,10 +80,9 @@ def vision():
             for x, y, w, h in speed_signs:
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
                 roi_blurred = blurred[y:y+h, x:x+w]
+                ret_val, roi_th = cv2.threshold(roi_blurred, 90, 255, cv2.THRESH_BINARY_INV)
+                cv2.imshow('ROI', roi_th)
             for x, y, w, h in stop_signs:
-                if not stopped:
-                    with remote_control_lock:
-                        remote_control.stop()
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
             drawbanner(frame)
             cv2.imshow(ROBOT_IP, frame)

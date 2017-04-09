@@ -68,7 +68,7 @@ def ultrasonic_sense():
 
 
 def vision():
-    face_cascade = cv2.CascadeClassifier('stop-sign-haar-cascade.xml')
+    face_cascade = cv2.CascadeClassifier('speed-sign-haar-cascade.xml')
     # face_cascade = cv2.CascadeClassifier('speedsigncascade.xml')
     # eye_cascade = cv2.CascadeClassifier('lbpsigncascade.xml')
     video = cv2.VideoCapture('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT))

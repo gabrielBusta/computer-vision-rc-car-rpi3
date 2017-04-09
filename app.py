@@ -76,6 +76,7 @@ def vision():
     stop_sign_cascade = cv2.CascadeClassifier('stop-sign-cascade.xml')
     video = cv2.VideoCapture('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT))
     cv2.namedWindow(ROBOT_IP, cv2.WINDOW_NORMAL)
+    stopped = False
     try:
         with remote_control_lock:
             remote_control.fwd()
@@ -89,8 +90,9 @@ def vision():
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
                 roi_blurred = blurred[y:y+h, x:x+w]
             for x, y, w, h in stop_signs:
-                with remote_control_lock:
-                    remote_control.stop()
+                if not stopped:
+                    with remote_control_lock:
+                        remote_control.stop()
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
             drawbanner(frame)
             cv2.imshow(ROBOT_IP, frame)

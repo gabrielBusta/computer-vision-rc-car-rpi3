@@ -1,4 +1,7 @@
 import math
+import numpy as np
+import cv2
+
 
 def grayscale(img):
     """Applies the Grayscale transform

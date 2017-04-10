@@ -20,10 +20,7 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 """
 import cv2
-import socket
 import sys
-import numpy as np
-from multiprocessing import Process, Lock
 from remote import RemoteController
 from settings import *
 from cvutils import *

@@ -20,97 +20,40 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 """
 import cv2
-import socket
 import sys
-import numpy as np
-from multiprocessing import Process, Lock
 from remote import RemoteController
 from settings import *
-
-
-remote_control_lock = Lock()
-remote_control = RemoteController((ROBOT_IP, REMOTE_CONTROL_PORT))
-remote_control.connect()
+from cvutils import *
 
 
 def main():
-    workers = []
-
-    if CAMERA_ON:
-        workers.append(Process(target=vision,
-                               name='VisionProcess'))
-    if ULTRASONIC_SENSOR_ON:
-        workers.append(Process(target=ultrasonic_sense,
-                               name='UltrasonicSenseProcess'))
-
-    for worker in workers:
-        worker.start()
-
-    for worker in workers:
-        worker.join()
-
-    remote_control.close()
-
-
-def ultrasonic_sense():
-    connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    connection.connect((ROBOT_IP, ULTRASONIC_SENSOR_PORT))
-    try:
-        message = connection.recv(1024).decode()
-        # the first few messages might be the empty string.
-        while not message:
-            message = connection.recv(1024).decode()
-        while True:
-            message = connection.recv(1024).decode()
-            # when the ultrasonic sensor stream stops it sends an empty string.
-            if not message:
-                break
-            distance = int(message)
-    finally:
-        connection.shutdown(socket.SHUT_RDWR)
-        connection.close()
-
-
-def vision():
-    speed_sign_cascade = cv2.CascadeClassifier('speed-sign-haar-cascade.xml')
-    stop_sign_cascade = cv2.CascadeClassifier('stop-sign-cascade.xml')
+    cv2.namedWindow('GOPIGO', cv2.WINDOW_NORMAL)
+    cv2.namedWindow('ROI', cv2.WINDOW_NORMAL)
     video = cv2.VideoCapture('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT))
-    cv2.namedWindow(ROBOT_IP, cv2.WINDOW_NORMAL)
-    stopped = False
     try:
-        with remote_control_lock:
-            remote_control.fwd()
         streaming, frame = video.read()
-        while streaming:
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-            speed_signs = speed_sign_cascade.detectMultiScale(blurred, 1.3, 5)
-            stop_signs = stop_sign_cascade.detectMultiScale(blurred, 1.3, 5)
-            for x, y, w, h in speed_signs:
-                cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-                roi_blurred = blurred[y:y+h, x:x+w]
-            for x, y, w, h in stop_signs:
-                if not stopped:
-                    with remote_control_lock:
-                        remote_control.stop()
-                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
-            drawbanner(frame)
-            cv2.imshow(ROBOT_IP, frame)
-            cv2.waitKey(1)
-            streaming, frame = video.read()
+        if streaming:
+            speedSignClassifier = cv2.CascadeClassifier('speed-sign-haar-cascade.xml')
+            stopSignClassifier = cv2.CascadeClassifier('stop-sign-haar-cascade.xml')
+            cvManager = CVManager(frame.shape, stopSignClassifier, speedSignClassifier)
+            while streaming:
+                gray = GrayScale(frame)
+                blur = GaussianBlur(gray)
+                threshold = InvertedBinaryThreshold(blur, lowerBound=90, upperBound=255)
+                lanes = cvManager.detectLanes(blur)
+                speedSigns = cvManager.detectSpeedSigns(blur)
+                stopSigns = cvManager.detectStopSigns(blur)
+                speedSignDigits = cvManager.readDigits(threshold, speedSigns)
+                cvManager.drawLanes(frame, lanes)
+                cvManager.drawSpeedSigns(frame, speedSigns)
+                cvManager.drawStopSigns(frame, stopSigns)
+                cv2.imshow('GOPIGO', frame)
+                cv2.imshow('ROI', speedSignDigits)
+                cv2.waitKey(1)
+                streaming, frame = video.read()
     finally:
         video.release()
         cv2.destroyAllWindows()
-
-
-def drawbanner(frame):
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    color = (255, 255, 255)
-    scale = 1
-    thickness = 2
-    text = 'Selfdriving GoPiGo'
-    pos = (175, 450)
-    cv2.putText(frame, text, pos, font, scale, color, thickness, cv2.LINE_AA)
 
 
 if __name__ == '__main__':

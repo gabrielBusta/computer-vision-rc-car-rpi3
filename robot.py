@@ -23,6 +23,7 @@ import socket
 import gopigo
 import time
 import sys
+import json
 from curses import wrapper, A_BOLD
 from multiprocessing import Process, Event, Lock
 from picamera import PiCamera
@@ -50,8 +51,8 @@ def main(stdscr):
         workers.append(Process(target=camera_streamer,
                                name='CameraStreamProcess'))
     if ULTRASONIC_SENSOR_ON:
-        workers.append(Process(target=ultrasonic_sensor_streamer,
-                               name='UltrasonicSensorStreamProcess'))
+        pass
+
     if REMOTE_CONTROL_ON:
         workers.append(Process(target=remote_control_listener,
                                name='RemoteControlListenerProcess'))
@@ -92,21 +93,6 @@ def camera_streamer():
         server.close()
 
 
-def ultrasonic_sensor_streamer():
-    server = new_server(('', ULTRASONIC_SENSOR_PORT))
-    connection, _ = server.accept()
-    try:
-        while not exit_flag.is_set():
-            distance = gopigo.us_dist(gopigo.analogPort)
-            message = str(distance)
-            connection.send(message.encode())
-    finally:
-        connection.shutdown(socket.SHUT_RDWR)
-        connection.close()
-        server.shutdown(socket.SHUT_RDWR)
-        server.close()
-
-
 def remote_control_listener():
     commands = {
         'fwd': gopigo.fwd,
@@ -139,7 +125,6 @@ def new_server(address):
     return server
 
 
-def 
 if __name__ == '__main__':
     if not DEBUG:
         sys.tracebacklimit = 0

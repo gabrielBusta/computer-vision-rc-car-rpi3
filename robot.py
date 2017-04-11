@@ -21,79 +21,49 @@ along with this program. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 """
 import socket
 import gopigo
-import time
 import sys
-import json
 from curses import wrapper, A_BOLD
-from multiprocessing import Process, Event, Lock
+from multiprocessing import Process, Event
 from picamera import PiCamera
 from settings import *
 
 
-# Each subprocess forked from the main process
-# is given a reference to this exit flag.
-exit_flag = Event()
-
-
-banner = '''
-  _____     _ ___    ____      _     _            _____     _____ _ _____
- |   __|___| |  _|  |    \ ___|_|_ _|_|___ ___   |   __|___|  _  |_|   __|___
- |__   | -_| |  _|  |  |  |  _| | | | |   | . |  |  |  | . |   __| |  |  | . |
- |_____|___|_|_|    |____/|_| |_|\_/|_|_|_|_  |  |_____|___|__|  |_|_____|___|
-                                          |___|
-'''
-
-
 def main(stdscr):
-    workers = []
-
-    if CAMERA_ON:
-        workers.append(Process(target=camera_streamer,
-                               name='CameraStreamProcess'))
-    if ULTRASONIC_SENSOR_ON:
-        pass
-
-    if REMOTE_CONTROL_ON:
-        workers.append(Process(target=remote_control_listener,
-                               name='RemoteControlListenerProcess'))
-
-    for worker in workers:
-        worker.start()
-
-    stdscr.addstr(0, 0, banner, A_BOLD)
-    stdscr.addstr(7, 1, 'Hit SPACE to quit...')
+    stdscr.addstr(1, 1, 'SELF DRIVING GOPIGO', A_BOLD)
     stdscr.refresh()
-    # Run the main loop.
-    while not exit_flag.is_set():
-        c = stdscr.getch()
-        if c == ord(' '):
-            stdscr.refresh()
-            exit_flag.set()
-            for worker in workers:
-                worker.join()
+
+    cameraServer = Server('',
+                          CAMERA_PORT,
+                          HandleCamera,
+                          name='cameraServer')
+    remoteControlServer = Server('',
+                                 REMOTE_CONTROL_PORT,
+                                 HandleRemoteControl,
+                                 name='remoteControlServer')
+
+    stdscr.addstr(3, 1, 'Wating for CV client...')
+    stdscr.refresh()
+    cameraServer.start()
+    stdscr.addstr(3, 25, 'connection with CV client established.')
+    stdscr.refresh()
+
+    stdscr.addstr(4, 1, 'Wating for remote control client...')
+    stdscr.refresh()
+    remoteControlServer.start()
+    stdscr.addstr(4, 37, 'connection with remote control client established.')
+    stdscr.refresh()
+
+    stdscr.addstr(6, 1, 'Hit SPACE to quit...')
+    stdscr.refresh()
+    while True:
+        c = chr(stdscr.getch())
+        if c == ' ':
+            cameraServer.shutdown()
+            remoteControlServer.shutdown()
+            break
 
 
-def camera_streamer():
-    server = new_server(('', CAMERA_PORT))
-    connection, _ = server.accept()
-    stream = connection.makefile('wb')
-    camera = PiCamera()
-    camera.framerate = CAMERA_FRAMERATE
-    camera.resolution = CAMERA_RESOLUTION
-    camera.rotation = CAMERA_ROTATION
-    camera.start_recording(stream, format=CAMERA_VIDEO_FORMAT)
-    try:
-        while not exit_flag.is_set():
-            camera.wait_recording(1)
-    finally:
-        camera.close()
-        connection.shutdown(socket.SHUT_RDWR)
-        connection.close()
-        server.shutdown(socket.SHUT_RDWR)
-        server.close()
-
-
-def remote_control_listener():
+def HandleRemoteControl(connection, shutdownRequest):
     commands = {
         'fwd': gopigo.fwd,
         'bwd': gopigo.bwd,
@@ -101,28 +71,54 @@ def remote_control_listener():
         'right': gopigo.right,
         'stop': gopigo.stop
     }
-    server = new_server(('', REMOTE_CONTROL_PORT))
-    connection, _ = server.accept()
+    while not shutdownRequest.is_set():
+        message = connection.recv(1024).decode()
+        if not message:
+            break
+        command = commands[message]
+        command()
+
+
+def HandleCamera(connection, shutdownRequest):
+    stream = connection.makefile('wb')
+    camera = PiCamera()
+    camera.framerate = CAMERA_FRAMERATE
+    camera.resolution = CAMERA_RESOLUTION
+    camera.rotation = CAMERA_ROTATION
+    camera.start_recording(stream, format=CAMERA_VIDEO_FORMAT)
     try:
-        while not exit_flag.is_set():
-            message = connection.recv(1024).decode()
-            if not message:
-                break
-            command = commands[message]
-            command()
+        while not shutdownRequest.is_set():
+            camera.wait_recording(1)
     finally:
-        connection.shutdown(socket.SHUT_RDWR)
-        connection.close()
-        server.shutdown(socket.SHUT_RDWR)
-        server.close()
+        camera.close()
 
 
-def new_server(address):
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    server.bind(address)
-    server.listen(0)
-    return server
+class Server(object):
+    def __init__(self, ip, port, handle, name):
+        self.ip = ip
+        self.port = port
+        self.handle = handle
+        self.name = name
+        self.shutdownRequest = Event()
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    def start(self):
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.socket.bind((self.ip, self.port))
+        self.socket.listen(0)
+        self.connection, _ = self.socket.accept()
+        self.process = Process(target=self.handle,
+                               args=(self.connection, self.shutdownRequest),
+                               name=self.name)
+        self.process.start()
+
+    def shutdown(self):
+        self.shutdownRequest.set()
+        self.process.join()
+        self.connection.shutdown(socket.SHUT_RDWR)
+        self.connection.close()
+        self.socket.shutdown(socket.SHUT_RDWR)
+        self.socket.close()
 
 
 if __name__ == '__main__':

@@ -24,7 +24,8 @@ import sys
 from remote import RemoteController
 from settings import *
 from cvutils import *
-
+import time
+import socket
 
 def main():
     cv2.namedWindow('GOPIGO', cv2.WINDOW_NORMAL)

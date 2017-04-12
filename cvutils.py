@@ -1,24 +1,10 @@
 import datetime
 import cv2
 import numpy as np
-from multiprocessing import Process, Event
+from threading import Thread
 
 
-def GaussianBlur(frame, kernelSize=(5, 5), sigma=0):
-    return cv2.GaussianBlur(frame, kernelSize, sigma)
-
-
-def GrayScale(frame):
-    return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-
-def InvertedBinaryThreshold(frame, lowerBound, upperBound):
-    ret, thresholded = cv2.threshold(frame, lowerBound, upperBound,
-                                     cv2.THRESH_BINARY_INV)
-    return thresholded
-
-
-class VisionManager(object):
+class ImageAnalysis(object):
     def __init__(self, shape, stopSignClassifier, speedSignClassifier):
         self.height, self.width, self.channels = shape
         self.stopSignClassifier = stopSignClassifier
@@ -40,16 +26,27 @@ class VisionManager(object):
         self.GREEN = (0, 255, 0)
         self.RED = (0, 0, 255)
 
+    def gaussianBlur(self, frame, kernelSize=(5, 5), sigma=0):
+        return cv2.GaussianBlur(frame, kernelSize, sigma)
+
+    def grayScale(self, frame):
+        return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    def invertedBinaryThreshold(self, frame, lowerBound, upperBound):
+        ret, thresholded = cv2.threshold(frame, lowerBound, upperBound,
+                                         cv2.THRESH_BINARY_INV)
+        return thresholded
+
     def detectLanes(self, frame):
         roi = frame[self.laneROIUpperBound:self.height, 0:self.width]
         roi_canny = cv2.Canny(frame, 90, 200)
         lanes = cv2.HoughLinesP(roi_canny,
-                            1,
-                            np.pi / 180,
-                            30,
-                            np.array([]),
-                            minLineLength=20,
-                            maxLineGap=20)
+                                1,
+                                np.pi / 180,
+                                30,
+                                np.array([]),
+                                minLineLength=20,
+                                maxLineGap=20)
         return lanes
 
     def detectSpeedSigns(self, frame):
@@ -61,6 +58,12 @@ class VisionManager(object):
         # TODO: Make it pick the biggest stop sign in sight.
         return self.stopSignClassifier.detectMultiScale(frame, self.stopSignScaleFactor,
                                                         self.stopSignMinNeighbors)
+
+    def readDigits(self, frame, signs):
+        for x, y, w, h in signs:
+            roi = frame[y:y+h, x:x+w]
+            return roi
+        return np.zeros((self.height, self.width, self.channels))
 
     def drawLanes(self, frame, lanes):
         if lanes is not None:
@@ -76,19 +79,13 @@ class VisionManager(object):
         for x, y, w, h in signs:
             cv2.rectangle(frame, (x, y), (x + w, y + h), self.GREEN, self.lineThickness)
             cv2.putText(frame, 'Speed Limit', (x, y - 8), self.font,
-                        1, self.GREEN, self.fontWeight, cv2.LINE_AA)
+                        1, self.GREEN, self.fontThickness, cv2.LINE_AA)
 
     def drawStopSigns(self, frame, signs):
         for x, y, w, h in signs:
             cv2.rectangle(frame, (x, y), (x + w, y + h), self.RED, self.lineThickness)
-            cv2.putText(frame, 'Speed Limit', (x, y - 8), self.font, self.fontScale,
+            cv2.putText(frame, 'Stop!', (x, y - 8), self.font, self.fontScale,
                         self.RED, self.fontThickness, cv2.LINE_AA)
-
-    def readDigits(self, frame, signs):
-        for x, y, w, h in signs:
-            roi = frame[y:y+h, x:x+w]
-            return roi
-        return np.zeros((self.height, self.width, self.channels))
 
 
 class FPSTimer(object):
@@ -118,21 +115,21 @@ class VideoStream(object):
     def __init__(self, url):
         self.stream = cv2.VideoCapture(url)
         self.streaming, self.frame = self.stream.read()
-        self.shutdownRequest = Event()
+        self.shutdownRequest = False
 
     def start(self):
-        self.process = Process(target=self.update, args=(self.shutdownRequest))
-        self.process.start()
+        self.thread = Thread(target=self.update)
+        self.thread.start()
         return self
 
-    def update(self, shutdownRequest):
-        while not shutdownRequest.is_set():
+    def update(self):
+        while not self.shutdownRequest:
             self.streaming, self.frame = self.stream.read()
 
     def read(self):
-        return self.frame
+        return self.streaming, self.frame
 
-    def stop(self):
-        self.shutdownRequest.set()
-        self.process.join()
+    def release(self):
+        self.shutdownRequest = True
+        self.thread.join()
         self.stream.release()

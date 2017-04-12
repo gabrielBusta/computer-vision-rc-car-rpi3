@@ -41,17 +41,19 @@ def main(stdscr):
                                  HandleRemoteControl,
                                  name='remoteControlServer')
 
-    stdscr.addstr(3, 1, 'Wating for CV client...')
+    stdscr.addstr(3, 1, '[INFO] Wating for CV client...')
     stdscr.refresh()
     cameraServer.start()
     stdscr.addstr(3, 25, 'connection with CV client established.')
     stdscr.refresh()
 
-    stdscr.addstr(4, 1, 'Wating for remote control client...')
+    '''
+    stdscr.addstr(4, 1, '[INFO] Wating for remote control client...')
     stdscr.refresh()
     remoteControlServer.start()
     stdscr.addstr(4, 37, 'connection with remote control client established.')
     stdscr.refresh()
+    '''
 
     stdscr.addstr(6, 1, 'Hit SPACE to quit...')
     stdscr.refresh()
@@ -59,7 +61,9 @@ def main(stdscr):
         c = chr(stdscr.getch())
         if c == ' ':
             cameraServer.shutdown()
+            '''
             remoteControlServer.shutdown()
+            '''
             break
 
 

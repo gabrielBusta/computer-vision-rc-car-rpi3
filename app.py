@@ -27,55 +27,54 @@ from curses import wrapper, A_BOLD
 
 
 def main(stdscr):
-    video = cv2.VideoCapture('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT))
-    # video = VideoStream('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT)).start()
+    stdscr.addstr(1, 1, 'SELF DRIVING GOPIGO', A_BOLD)
+    stdscr.refresh()
+    #video = cv2.VideoCapture('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT))
+    video = VideoStream('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT)).start()
+    streaming, frame = video.read()
 
-    try:
-        streaming, frame = video.read()
-        if streaming:
-            # cv2.namedWindow('GOPIGO')
-            # cv2.namedWindow('ROI')
+    if streaming:
+        #cv2.namedWindow('GOPIGO')
+        #cv2.namedWindow('ROI')
 
-            speedSignClassifier = cv2.CascadeClassifier('speed-sign-haar-cascade.xml')
-            stopSignClassifier = cv2.CascadeClassifier('stop-sign-haar-cascade.xml')
-            imageAnalysis = ImageAnalysis(frame.shape, stopSignClassifier, speedSignClassifier)
-            fpsTimer = FPSTimer().start()
+        speedSignClassifier = cv2.CascadeClassifier('speed-sign-haar-cascade.xml')
+        stopSignClassifier = cv2.CascadeClassifier('stop-sign-haar-cascade.xml')
+        imageAnalysis = ImageAnalysis(frame.shape, stopSignClassifier, speedSignClassifier)
+        fpsTimer = FPSTimer().start()
 
-            while streaming:
-                gray = imageAnalysis.grayScale(frame)
-                blur = imageAnalysis.gaussianBlur(gray)
-                threshold = imageAnalysis.invertedBinaryThreshold(blur,
-                                                                  lowerBound=90,
-                                                                  upperBound=255)
-                lanes = imageAnalysis.detectLanes(blur)
-                speedSigns = imageAnalysis.detectSpeedSigns(blur)
-                stopSigns = imageAnalysis.detectStopSigns(blur)
-                speedSignDigitsROI = imageAnalysis.readDigits(threshold, speedSigns)
+        while streaming:
+            gray = imageAnalysis.grayScale(frame)
+            blur = imageAnalysis.gaussianBlur(gray)
+            threshold = imageAnalysis.invertedBinaryThreshold(blur,
+                                                              lowerBound=90,
+                                                              upperBound=255)
+            lanes = imageAnalysis.detectLanes(blur)
+            speedSigns = imageAnalysis.detectSpeedSigns(blur)
+            stopSigns = imageAnalysis.detectStopSigns(blur)
+            speedSignDigitsROI = imageAnalysis.readDigits(threshold, speedSigns)
 
-                imageAnalysis.drawLanes(frame, lanes)
-                imageAnalysis.drawSpeedSigns(frame, speedSigns)
-                imageAnalysis.drawStopSigns(frame, stopSigns)
-                # cv2.imshow('GOPIGO', frame)
-                # cv2.imshow('ROI', speedSignDigitsROI)
-                # cv2.waitKey(1)
-                streaming, frame = video.read()
-                fpsTimer.update()
+            imageAnalysis.drawLanes(frame, lanes)
+            imageAnalysis.drawSpeedSigns(frame, speedSigns)
+            imageAnalysis.drawStopSigns(frame, stopSigns)
+            #cv2.imshow('GOPIGO', frame)
+            #cv2.imshow('ROI', speedSignDigitsROI)
+            #cv2.waitKey(1)
+            streaming, frame = video.read()
+            fpsTimer.update()
 
+        fpsTimer.stop()
 
-            fpsTimer.stop()
+        stdscr.addstr(3, 1, '[INFO] elasped time: {:.2f}'.format(fpsTimer.elapsed()))
+        stdscr.addstr(4, 1, '[INFO] approx. FPS: {:.2f}'.format(fpsTimer.fps()))
+        stdscr.addstr(6, 1, 'Hit SPACE to quit...')
+        stdscr.refresh()
+        while True:
+            c = chr(stdscr.getch())
+            if c == ' ':
+                break
 
-            stdscr.addstr(3, 1, '[INFO] elasped time: {:.2f}'.format(fpsTimer.elapsed()))
-            stdscr.addstr(4, 1, '[INFO] approx. FPS: {:.2f}'.format(fpsTimer.fps()))
-            stdscr.addstr(6, 1, 'Hit SPACE to quit...')
-            stdscr.refresh()
-            while True:
-                c = chr(stdscr.getch())
-                if c == ' ':
-                    break
-    finally:
-        video.release()
-        cv2.destroyAllWindows()
-
+    cv2.destroyAllWindows()
+    video.release()
 
 if __name__ == '__main__':
     if not DEBUG:

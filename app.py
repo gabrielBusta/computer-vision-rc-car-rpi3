@@ -40,6 +40,7 @@ def main(stdscr):
         speedSignClassifier = cv2.CascadeClassifier('speed-sign-haar-cascade.xml')
         stopSignClassifier = cv2.CascadeClassifier('stop-sign-haar-cascade.xml')
         imageAnalysis = ImageAnalysis(frame.shape, stopSignClassifier, speedSignClassifier)
+
         fpsTimer = FPSTimer().start()
 
         while streaming:

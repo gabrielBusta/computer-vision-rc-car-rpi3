@@ -19,31 +19,37 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 """
-import sys
 import cv2
+import logging
+from plumbum import colors
 from settings import *
 from cvutils import *
-from curses import wrapper, A_BOLD
 
 
-def main(stdscr):
-    stdscr.addstr(1, 1, 'SELF DRIVING GOPIGO', A_BOLD)
-    stdscr.refresh()
-    #video = cv2.VideoCapture('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT))
-    video = VideoStream('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT)).start()
-    streaming, frame = video.read()
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
+
+def main():
+    #videoStream = cv2.VideoCapture('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT))
+    #videoStream = VideoStream('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT)).start()
+    videoStream = VideoStream(0).start()
+
+    streaming, frame = videoStream.read()
     if streaming:
-        #cv2.namedWindow('GOPIGO')
-        #cv2.namedWindow('ROI')
+        logger.debug('Video is streaming.')
 
         speedSignClassifier = cv2.CascadeClassifier('speed-sign-haar-cascade.xml')
         stopSignClassifier = cv2.CascadeClassifier('stop-sign-haar-cascade.xml')
+        logger.debug('HAAR cascades successfully loaded.')
+
         imageAnalysis = ImageAnalysis(frame.shape, stopSignClassifier, speedSignClassifier)
+        visualization = Visualization()
 
         fpsTimer = FPSTimer().start()
-
         while streaming:
+            visualization.createWindows()
+
             gray = imageAnalysis.grayScale(frame)
             blur = imageAnalysis.gaussianBlur(gray)
             threshold = imageAnalysis.invertedBinaryThreshold(blur,
@@ -52,32 +58,30 @@ def main(stdscr):
             lanes = imageAnalysis.detectLanes(blur)
             speedSigns = imageAnalysis.detectSpeedSigns(blur)
             stopSigns = imageAnalysis.detectStopSigns(blur)
-            speedSignDigitsROI = imageAnalysis.readDigits(threshold, speedSigns)
+            digitsRoi = imageAnalysis.readDigits(threshold, speedSigns)
 
-            imageAnalysis.drawLanes(frame, lanes)
-            imageAnalysis.drawSpeedSigns(frame, speedSigns)
-            imageAnalysis.drawStopSigns(frame, stopSigns)
-            #cv2.imshow('GOPIGO', frame)
-            #cv2.imshow('ROI', speedSignDigitsROI)
-            #cv2.waitKey(1)
-            streaming, frame = video.read()
+            visualization.drawLanes(frame, lanes)
+            visualization.drawSpeedSigns(frame, speedSigns)
+            visualization.drawStopSigns(frame, stopSigns)
+            keyPressed = visualization.show(frame, digitsRoi)
+            if keyPressed == 'q':
+                break
+
+            streaming, frame = videoStream.read()
             fpsTimer.update()
 
         fpsTimer.stop()
 
-        stdscr.addstr(3, 1, '[INFO] elasped time: {:.2f}'.format(fpsTimer.elapsed()))
-        stdscr.addstr(4, 1, '[INFO] approx. FPS: {:.2f}'.format(fpsTimer.fps()))
-        stdscr.addstr(6, 1, 'Hit SPACE to quit...')
-        stdscr.refresh()
-        while True:
-            c = chr(stdscr.getch())
-            if c == ' ':
-                break
+        logger.info(colors.info & colors.bold |
+                    'Elasped time = {:.2f}'
+                    .format(fpsTimer.elapsed()))
 
-    cv2.destroyAllWindows()
-    video.release()
+        logger.info(colors.info & colors.bold |
+                    'Approx. FPS = {:.2f}'.format(fpsTimer.fps()))
+
+    visualization.destroyWindows()
+    videoStream.release()
+
 
 if __name__ == '__main__':
-    if not DEBUG:
-        sys.tracebacklimit = 0
-    wrapper(main)
+    main()

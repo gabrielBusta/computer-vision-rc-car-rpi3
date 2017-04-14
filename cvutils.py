@@ -1,30 +1,51 @@
 import datetime
 import cv2
 import numpy as np
+import logging
+from plumbum import colors
 from threading import Thread
 
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
+
+
 class ImageAnalysis(object):
-    def __init__(self, shape, stopSignClassifier, speedSignClassifier):
+    def __init__(self, shape, stopSignClassifier, speedSignClassifier,
+                 stopSignScaleFactor=1.3, stopSignMinNeighbors=5,
+                 speedSignScaleFactor=1.3, speedSignMinNeighbors=5,
+                 laneRoiCutoff=390):
+
         self.height, self.width, self.channels = shape
+
         self.stopSignClassifier = stopSignClassifier
         self.speedSignClassifier = speedSignClassifier
-        # Classifier parameters.
-        self.stopSignScaleFactor = 1.3
-        self.stopSignMinNeighbors = 5
-        self.speedSignScaleFactor = 1.3
-        self.speedSignMinNeighbors = 5
-        # We will include the frame up to a horizontal line
-        # going through this x coordinate.
-        self.laneROIUpperBound = 390
-        # Visualization Parameters.
-        self.lineThickness = 3
-        self.font = cv2.FONT_HERSHEY_SIMPLEX
-        self.fontThickness = 1
-        self.fontScale = 1
-        self.BLUE = (255, 0, 0)
-        self.GREEN = (0, 255, 0)
-        self.RED = (0, 0, 255)
+
+        self.stopSignScaleFactor = stopSignScaleFactor
+        logger.info(colors.info & colors.bold |
+                    'stop sign classifier scale factor = {}'
+                    .format(self.stopSignScaleFactor))
+
+        self.stopSignMinNeighbors = stopSignMinNeighbors
+        logger.info(colors.info & colors.bold |
+                    'stop sign classifier minimum number of neighbors = {}'
+                    .format(self.stopSignMinNeighbors))
+
+        self.speedSignScaleFactor = speedSignScaleFactor
+        logger.info(colors.info & colors.bold |
+                    'speed sign classifier scale factor = {}'
+                    .format(self.speedSignScaleFactor))
+
+        self.speedSignMinNeighbors = speedSignMinNeighbors
+        logger.info(colors.info  & colors.bold |
+                    'speed sign classifier scale factor = {}'
+                    .format(self.speedSignScaleFactor))
+
+        self.laneRoiCutoff = laneRoiCutoff
+
+        logger.debug('sucessfully initialized '
+                     'image analysis control object.')
+
 
     def gaussianBlur(self, frame, kernelSize=(5, 5), sigma=0):
         return cv2.GaussianBlur(frame, kernelSize, sigma)
@@ -38,7 +59,7 @@ class ImageAnalysis(object):
         return thresholded
 
     def detectLanes(self, frame):
-        roi = frame[self.laneROIUpperBound:self.height, 0:self.width]
+        roi = frame[self.laneRoiCutoff:self.height, 0:self.width]
         roi_canny = cv2.Canny(frame, 90, 200)
         lanes = cv2.HoughLinesP(roi_canny,
                                 1,
@@ -58,32 +79,63 @@ class ImageAnalysis(object):
         # TODO: Make it pick the biggest stop sign in sight.
         return self.stopSignClassifier.detectMultiScale(frame, self.stopSignScaleFactor,
                                                         self.stopSignMinNeighbors)
-
     def readDigits(self, frame, signs):
         for x, y, w, h in signs:
             roi = frame[y:y+h, x:x+w]
             return roi
         return np.zeros((self.height, self.width, self.channels))
 
+
+class Visualization(object):
+    def __init__(self, lineThickness=3, font=cv2.FONT_HERSHEY_SIMPLEX,
+                 fontThickness=1, fontScale=1, laneRoiOffset=390):
+
+        self.BLUE = (255, 0, 0)
+        self.GREEN = (0, 255, 0)
+        self.RED = (0, 0, 255)
+
+        self.lineThickness = lineThickness
+        self.font = font
+        self.fontThickness = fontThickness
+        self.fontScale = fontScale
+        self.laneRoiOffset = laneRoiOffset
+
+        logger.debug('sucessfully initialized '
+                     'visualization boundary object.')
+
+    def createWindows(self):
+        cv2.namedWindow('GOPIGO')
+        cv2.namedWindow('ROI')
+
+    def destroyWindows(self):
+        cv2.destroyAllWindows()
+
+    def show(self, frame, digitsRoi):
+        cv2.imshow('GOPIGO', frame)
+        cv2.imshow('ROI', digitsRoi)
+        return chr(cv2.waitKey(1))
+
     def drawLanes(self, frame, lanes):
         if lanes is not None:
             for lane in lanes:
                 for x1, y1, x2, y2 in lane:
                     cv2.line(frame,
-                             (x1, y1 + self.laneROIUpperBound),
-                             (x2, y2 + self.laneROIUpperBound),
+                             (x1, y1 + self.laneRoiOffset),
+                             (x2, y2 + self.laneRoiOffset),
                              self.BLUE,
                              self.lineThickness)
 
     def drawSpeedSigns(self, frame, signs):
         for x, y, w, h in signs:
-            cv2.rectangle(frame, (x, y), (x + w, y + h), self.GREEN, self.lineThickness)
+            cv2.rectangle(frame, (x, y), (x + w, y + h),
+                          self.GREEN, self.lineThickness)
             cv2.putText(frame, 'Speed Limit', (x, y - 8), self.font,
                         1, self.GREEN, self.fontThickness, cv2.LINE_AA)
 
     def drawStopSigns(self, frame, signs):
         for x, y, w, h in signs:
-            cv2.rectangle(frame, (x, y), (x + w, y + h), self.RED, self.lineThickness)
+            cv2.rectangle(frame, (x, y), (x + w, y + h),
+                          self.RED, self.lineThickness)
             cv2.putText(frame, 'Stop!', (x, y - 8), self.font, self.fontScale,
                         self.RED, self.fontThickness, cv2.LINE_AA)
 

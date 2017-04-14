@@ -37,11 +37,16 @@ def main():
     logger.debug('Video stream started.')
 
     imageAnalysis = ImageAnalysis(frame.shape,
-                                  'speed-sign-haar-cascade.xml',
                                   'stop-sign-haar-cascade.xml',
+                                  'speed-sign-haar-cascade.xml',
                                   'svm-digit-classifier.pkl')
 
+    logger.debug('Sucessfully initialized '
+                 'image analysis control object.')
+
     displayManager = DisplayManager()
+
+    logger.debug('Sucessfully initialized display manager boundary object.')
 
     displayManager.createWindows()
 
@@ -51,14 +56,11 @@ def main():
     while streaming:
         gray = imageAnalysis.grayScale(frame)
         blur = imageAnalysis.gaussianBlur(gray)
-        threshold = imageAnalysis.invertedBinaryThreshold(blur,
-                                                          lowerBound=90,
-                                                          upperBound=255)
 
         lanes = imageAnalysis.detectLanes(blur)
         speedSigns = imageAnalysis.detectSpeedSigns(blur)
         stopSigns = imageAnalysis.detectStopSigns(blur)
-        digitsRoi = imageAnalysis.readDigits(threshold, speedSigns)
+        digitsRoi = imageAnalysis.readDigits(blur, speedSigns)
 
         displayManager.drawLanes(frame, lanes)
         displayManager.drawSpeedSigns(frame, speedSigns)

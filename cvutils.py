@@ -54,9 +54,6 @@ class ImageAnalysis(object):
 
         self.laneRoiCutoff = laneRoiCutoff
 
-        logger.debug('Sucessfully initialized '
-                     'image analysis control object.')
-
 
     def gaussianBlur(self, frame, kernelSize=(5, 5), sigma=0):
         return cv2.GaussianBlur(frame, kernelSize, sigma)
@@ -68,6 +65,16 @@ class ImageAnalysis(object):
         ret, thresholded = cv2.threshold(frame, lowerBound, upperBound,
                                          cv2.THRESH_BINARY_INV)
         return thresholded
+
+    def openWithEllipticalKernel(self, frame, kernelSize=(1, 5)):
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, kernelSize)
+        return cv2.morphologyEx(frame, cv2.MORPH_OPEN, kernel)
+
+    def resize(self, frame, size):
+        roi = cv2.resize(frame, size, interpolation=cv2.INTER_AREA)
+
+    def dilate(self, frame, kernel=(1, 1)):
+        cv2.dilate(frame, kernel)
 
     def detectLanes(self, frame):
         roi = frame[self.laneRoiCutoff:self.height, 0:self.width]
@@ -82,20 +89,21 @@ class ImageAnalysis(object):
         return lanes
 
     def detectSpeedSigns(self, frame):
-        # TODO: Make it pick the biggest speed sign in sight.
         return self.speedSignClassifier.detectMultiScale(frame,
                                                          self.speedSignScaleFactor,
                                                          self.speedSignMinNeighbors)
 
     def detectStopSigns(self, frame):
-        # TODO: Make it pick the biggest stop sign in sight.
         return self.stopSignClassifier.detectMultiScale(frame,
                                                         self.stopSignScaleFactor,
                                                         self.stopSignMinNeighbors)
+
     def readDigits(self, frame, signs):
         for x, y, w, h in signs:
-            roi = frame[y:y+h, x:x+w]
-            return roi
+            sign = frame[y:y+h, x:x+w]
+
+            return sign
+
         return np.zeros((self.height, self.width, self.channels))
 
 
@@ -112,8 +120,6 @@ class DisplayManager(object):
         self.fontThickness = fontThickness
         self.fontScale = fontScale
         self.laneRoiOffset = laneRoiOffset
-
-        logger.debug('Sucessfully initialized display manager boundary object.')
 
     def createWindows(self):
         cv2.namedWindow('GOPIGO')

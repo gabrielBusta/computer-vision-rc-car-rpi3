@@ -38,7 +38,8 @@ def main():
 
     imageAnalysis = ImageAnalysis(frame.shape,
                                   'speed-sign-haar-cascade.xml',
-                                  'stop-sign-haar-cascade.xml')
+                                  'stop-sign-haar-cascade.xml',
+                                  'svm-digit-classifier.pkl')
 
     displayManager = DisplayManager()
 
@@ -53,6 +54,7 @@ def main():
         threshold = imageAnalysis.invertedBinaryThreshold(blur,
                                                           lowerBound=90,
                                                           upperBound=255)
+
         lanes = imageAnalysis.detectLanes(blur)
         speedSigns = imageAnalysis.detectSpeedSigns(blur)
         stopSigns = imageAnalysis.detectStopSigns(blur)

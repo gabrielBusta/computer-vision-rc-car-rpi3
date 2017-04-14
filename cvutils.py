@@ -4,6 +4,8 @@ import numpy as np
 import logging
 from plumbum import colors
 from threading import Thread
+from sklearn.externals import joblib
+from skimage.feature import hog
 
 
 logger = logging.getLogger(__name__)
@@ -12,40 +14,47 @@ logging.basicConfig(level=logging.DEBUG)
 
 class ImageAnalysis(object):
     def __init__(self, shape, stopSignCascade, speedSignCascade,
-                 stopSignScaleFactor=1.3, stopSignMinNeighbors=5,
-                 speedSignScaleFactor=1.3, speedSignMinNeighbors=5,
-                 laneRoiCutoff=390):
+                 svmFile, stopSignScaleFactor=1.3,
+                 stopSignMinNeighbors=5, speedSignScaleFactor=1.3,
+                 speedSignMinNeighbors=5, laneRoiCutoff=390):
 
         self.height, self.width, self.channels = shape
 
+        self.digitClassifier = joblib.load(svmFile)
+
+        logger.debug('SVM digit classifier loaded successfully.')
+        logger.info(colors.blue & colors.bold |
+                    'Digit SVM (linear kernel) classifier: '
+                    'C = {}, loss = {}, penalty = {}'
+                    .format(self.digitClassifier.C,
+                            self.digitClassifier.loss.replace('_', ' '),
+                            self.digitClassifier.penalty))
 
         self.speedSignClassifier = cv2.CascadeClassifier(speedSignCascade)
-        self.stopSignClassifier = cv2.CascadeClassifier(stopSignCascade)
-        logger.debug('HAAR cascades loaded successfully.')
-
         self.stopSignScaleFactor = stopSignScaleFactor
-        logger.info(colors.blue & colors.bold |
-                    'stop sign classifier scale factor = {}'
-                    .format(self.stopSignScaleFactor))
-
         self.stopSignMinNeighbors = stopSignMinNeighbors
-        logger.info(colors.blue & colors.bold |
-                    'stop sign classifier minimum number of neighbors = {}'
-                    .format(self.stopSignMinNeighbors))
 
+        logger.info(colors.blue & colors.bold |
+                    'Stop sign cascade classifier: '
+                    'scale factor = {}, minimum number of neighbors = {}'
+                    .format(self.stopSignScaleFactor,
+                            self.stopSignMinNeighbors))
+
+        self.stopSignClassifier = cv2.CascadeClassifier(stopSignCascade)
         self.speedSignScaleFactor = speedSignScaleFactor
-        logger.info(colors.blue & colors.bold |
-                    'speed sign classifier scale factor = {}'
-                    .format(self.speedSignScaleFactor))
-
         self.speedSignMinNeighbors = speedSignMinNeighbors
-        logger.info(colors.blue  & colors.bold |
-                    'speed sign classifier scale factor = {}'
-                    .format(self.speedSignScaleFactor))
+
+        logger.info(colors.blue & colors.bold |
+                    'Speed sign cascade classifier: '
+                    'scale factor = {}, minimum number of neighbors = {}'
+                    .format(self.speedSignScaleFactor,
+                            self.speedSignMinNeighbors))
+
+        logger.debug('HAAR cascades loaded successfully.')
 
         self.laneRoiCutoff = laneRoiCutoff
 
-        logger.debug('sucessfully initialized '
+        logger.debug('Sucessfully initialized '
                      'image analysis control object.')
 
 
@@ -104,7 +113,7 @@ class DisplayManager(object):
         self.fontScale = fontScale
         self.laneRoiOffset = laneRoiOffset
 
-        logger.debug('sucessfully initialized display manager boundary object.')
+        logger.debug('Sucessfully initialized display manager boundary object.')
 
     def createWindows(self):
         cv2.namedWindow('GOPIGO')

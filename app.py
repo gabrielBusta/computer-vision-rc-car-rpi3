@@ -19,11 +19,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 """
-import cv2
 import logging
 from plumbum import colors
-from settings import *
 from cvutils import *
+from settings import *
 
 
 logger = logging.getLogger(__name__)

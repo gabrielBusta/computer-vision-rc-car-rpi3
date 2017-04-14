@@ -34,52 +34,56 @@ def main():
     #videoStream = cv2.VideoCapture('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT))
     #videoStream = VideoStream('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT)).start()
     videoStream = VideoStream(0).start()
-
     streaming, frame = videoStream.read()
-    if streaming:
-        logger.debug('Video is streaming.')
+    logger.debug('Video stream started.')
 
-        speedSignClassifier = cv2.CascadeClassifier('speed-sign-haar-cascade.xml')
-        stopSignClassifier = cv2.CascadeClassifier('stop-sign-haar-cascade.xml')
-        logger.debug('HAAR cascades successfully loaded.')
+    speedSignClassifier = cv2.CascadeClassifier('speed-sign-haar-cascade.xml')
+    stopSignClassifier = cv2.CascadeClassifier('stop-sign-haar-cascade.xml')
+    logger.debug('HAAR cascades loaded successfully.')
 
-        imageAnalysis = ImageAnalysis(frame.shape, stopSignClassifier, speedSignClassifier)
-        visualization = Visualization()
+    imageAnalysis = ImageAnalysis(frame.shape,
+                                  stopSignClassifier,
+                                  speedSignClassifier)
 
-        fpsTimer = FPSTimer().start()
-        while streaming:
-            visualization.createWindows()
+    displayManager = DisplayManager()
 
-            gray = imageAnalysis.grayScale(frame)
-            blur = imageAnalysis.gaussianBlur(gray)
-            threshold = imageAnalysis.invertedBinaryThreshold(blur,
-                                                              lowerBound=90,
-                                                              upperBound=255)
-            lanes = imageAnalysis.detectLanes(blur)
-            speedSigns = imageAnalysis.detectSpeedSigns(blur)
-            stopSigns = imageAnalysis.detectStopSigns(blur)
-            digitsRoi = imageAnalysis.readDigits(threshold, speedSigns)
+    displayManager.createWindows()
 
-            visualization.drawLanes(frame, lanes)
-            visualization.drawSpeedSigns(frame, speedSigns)
-            visualization.drawStopSigns(frame, stopSigns)
-            keyPressed = visualization.show(frame, digitsRoi)
-            if keyPressed == 'q':
-                break
+    fpsTimer = FPSTimer().start()
 
-            streaming, frame = videoStream.read()
-            fpsTimer.update()
+    # MAIN LOOP #
+    while streaming:
+        gray = imageAnalysis.grayScale(frame)
+        blur = imageAnalysis.gaussianBlur(gray)
+        threshold = imageAnalysis.invertedBinaryThreshold(blur,
+                                                          lowerBound=90,
+                                                          upperBound=255)
+        lanes = imageAnalysis.detectLanes(blur)
+        speedSigns = imageAnalysis.detectSpeedSigns(blur)
+        stopSigns = imageAnalysis.detectStopSigns(blur)
+        digitsRoi = imageAnalysis.readDigits(threshold, speedSigns)
 
-        fpsTimer.stop()
+        displayManager.drawLanes(frame, lanes)
+        displayManager.drawSpeedSigns(frame, speedSigns)
+        displayManager.drawStopSigns(frame, stopSigns)
+        displayManager.show(frame, digitsRoi)
 
-        logger.info(colors.info & colors.bold |
-                    'Elasped time = {:.2f}'
-                    .format(fpsTimer.elapsed()))
+        if displayManager.getKeyPressed() == 'q':
+            break
 
-        logger.info(colors.info & colors.bold |
-                    'Approx. FPS = {:.2f}'.format(fpsTimer.fps()))
+        streaming, frame = videoStream.read()
+        fpsTimer.update()
 
-    visualization.destroyWindows()
+    fpsTimer.stop()
+
+    logger.info(colors.blue & colors.bold |
+                'Elasped time = {:.2f}'
+                .format(fpsTimer.elapsed()))
+
+    logger.info(colors.blue & colors.bold |
+                'Approx. FPS = {:.2f}'.format(fpsTimer.fps()))
+
+    displayManager.destroyWindows()
     videoStream.release()
 
 

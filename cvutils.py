@@ -22,22 +22,22 @@ class ImageAnalysis(object):
         self.speedSignClassifier = speedSignClassifier
 
         self.stopSignScaleFactor = stopSignScaleFactor
-        logger.info(colors.info & colors.bold |
+        logger.info(colors.blue & colors.bold |
                     'stop sign classifier scale factor = {}'
                     .format(self.stopSignScaleFactor))
 
         self.stopSignMinNeighbors = stopSignMinNeighbors
-        logger.info(colors.info & colors.bold |
+        logger.info(colors.blue & colors.bold |
                     'stop sign classifier minimum number of neighbors = {}'
                     .format(self.stopSignMinNeighbors))
 
         self.speedSignScaleFactor = speedSignScaleFactor
-        logger.info(colors.info & colors.bold |
+        logger.info(colors.blue & colors.bold |
                     'speed sign classifier scale factor = {}'
                     .format(self.speedSignScaleFactor))
 
         self.speedSignMinNeighbors = speedSignMinNeighbors
-        logger.info(colors.info  & colors.bold |
+        logger.info(colors.blue  & colors.bold |
                     'speed sign classifier scale factor = {}'
                     .format(self.speedSignScaleFactor))
 
@@ -72,12 +72,14 @@ class ImageAnalysis(object):
 
     def detectSpeedSigns(self, frame):
         # TODO: Make it pick the biggest speed sign in sight.
-        return self.speedSignClassifier.detectMultiScale(frame, self.speedSignScaleFactor,
+        return self.speedSignClassifier.detectMultiScale(frame,
+                                                         self.speedSignScaleFactor,
                                                          self.speedSignMinNeighbors)
 
     def detectStopSigns(self, frame):
         # TODO: Make it pick the biggest stop sign in sight.
-        return self.stopSignClassifier.detectMultiScale(frame, self.stopSignScaleFactor,
+        return self.stopSignClassifier.detectMultiScale(frame,
+                                                        self.stopSignScaleFactor,
                                                         self.stopSignMinNeighbors)
     def readDigits(self, frame, signs):
         for x, y, w, h in signs:
@@ -86,7 +88,7 @@ class ImageAnalysis(object):
         return np.zeros((self.height, self.width, self.channels))
 
 
-class Visualization(object):
+class DisplayManager(object):
     def __init__(self, lineThickness=3, font=cv2.FONT_HERSHEY_SIMPLEX,
                  fontThickness=1, fontScale=1, laneRoiOffset=390):
 
@@ -100,8 +102,7 @@ class Visualization(object):
         self.fontScale = fontScale
         self.laneRoiOffset = laneRoiOffset
 
-        logger.debug('sucessfully initialized '
-                     'visualization boundary object.')
+        logger.debug('sucessfully initialized display manager boundary object.')
 
     def createWindows(self):
         cv2.namedWindow('GOPIGO')
@@ -113,6 +114,8 @@ class Visualization(object):
     def show(self, frame, digitsRoi):
         cv2.imshow('GOPIGO', frame)
         cv2.imshow('ROI', digitsRoi)
+
+    def getKeyPressed(self):
         return chr(cv2.waitKey(1))
 
     def drawLanes(self, frame, lanes):
@@ -140,29 +143,6 @@ class Visualization(object):
                         self.RED, self.fontThickness, cv2.LINE_AA)
 
 
-class FPSTimer(object):
-    def __init__(self):
-        self.startTime = None
-        self.endTime = None
-        self.numFrames = 0
-
-    def start(self):
-        self.startTime = datetime.datetime.now()
-        return self
-
-    def stop(self):
-        self.endTime = datetime.datetime.now()
-
-    def update(self):
-        self.numFrames += 1
-
-    def elapsed(self):
-        return (self.endTime - self.startTime).total_seconds()
-
-    def fps(self):
-        return self.numFrames / self.elapsed()
-
-
 class VideoStream(object):
     def __init__(self, url):
         self.stream = cv2.VideoCapture(url)
@@ -185,3 +165,26 @@ class VideoStream(object):
         self.shutdownRequest = True
         self.thread.join()
         self.stream.release()
+
+
+class FPSTimer(object):
+    def __init__(self):
+        self.startTime = None
+        self.endTime = None
+        self.numFrames = 0
+
+    def start(self):
+        self.startTime = datetime.datetime.now()
+        return self
+
+    def stop(self):
+        self.endTime = datetime.datetime.now()
+
+    def update(self):
+        self.numFrames += 1
+
+    def elapsed(self):
+        return (self.endTime - self.startTime).total_seconds()
+
+    def fps(self):
+        return self.numFrames / self.elapsed()

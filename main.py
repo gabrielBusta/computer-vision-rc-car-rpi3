@@ -19,11 +19,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 """
-import cv2
 import logging
-from plumbum import colors
 from cvutils import *
 from settings import *
+from plumbum import colors
 
 
 logger = logging.getLogger(__name__)
@@ -37,13 +36,9 @@ def main():
     streaming, frame = videoStream.read()
     logger.debug('Video stream started.')
 
-    speedSignClassifier = cv2.CascadeClassifier('speed-sign-haar-cascade.xml')
-    stopSignClassifier = cv2.CascadeClassifier('stop-sign-haar-cascade.xml')
-    logger.debug('HAAR cascades loaded successfully.')
-
     imageAnalysis = ImageAnalysis(frame.shape,
-                                  stopSignClassifier,
-                                  speedSignClassifier)
+                                  'speed-sign-haar-cascade.xml',
+                                  'stop-sign-haar-cascade.xml')
 
     displayManager = DisplayManager()
 

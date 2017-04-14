@@ -11,15 +11,17 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 class ImageAnalysis(object):
-    def __init__(self, shape, stopSignClassifier, speedSignClassifier,
+    def __init__(self, shape, stopSignCascade, speedSignCascade,
                  stopSignScaleFactor=1.3, stopSignMinNeighbors=5,
                  speedSignScaleFactor=1.3, speedSignMinNeighbors=5,
                  laneRoiCutoff=390):
 
         self.height, self.width, self.channels = shape
 
-        self.stopSignClassifier = stopSignClassifier
-        self.speedSignClassifier = speedSignClassifier
+
+        self.speedSignClassifier = cv2.CascadeClassifier(speedSignCascade)
+        self.stopSignClassifier = cv2.CascadeClassifier(stopSignCascade)
+        logger.debug('HAAR cascades loaded successfully.')
 
         self.stopSignScaleFactor = stopSignScaleFactor
         logger.info(colors.blue & colors.bold |

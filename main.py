@@ -34,12 +34,12 @@ def main():
     #videoStream = VideoStream('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT)).start()
     videoStream = VideoStream(0).start()
     streaming, frame = videoStream.read()
+    
     logger.debug('Video stream started.')
 
     imageAnalysis = ImageAnalysis(frame.shape,
                                   'stop-sign-haar-cascade.xml',
-                                  'speed-sign-haar-cascade.xml',
-                                  'svm-digit-classifier.pkl')
+                                  'speed-sign-haar-cascade.xml')
 
     logger.debug('Sucessfully initialized '
                  'image analysis control object.')

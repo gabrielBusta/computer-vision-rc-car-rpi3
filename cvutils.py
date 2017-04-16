@@ -13,22 +13,11 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 class ImageAnalysis(object):
-    def __init__(self, shape, stopSignCascade, speedSignCascade,
-                 svmFile, stopSignScaleFactor=1.3,
-                 stopSignMinNeighbors=5, speedSignScaleFactor=1.3,
-                 speedSignMinNeighbors=5, laneRoiCutoff=390):
+    def __init__(self, shape, stopSignCascade, speedSignCascade, laneRoiCutoff=390,
+                 stopSignScaleFactor=1.3, stopSignMinNeighbors=5,
+                 speedSignScaleFactor=1.3, speedSignMinNeighbors=5):
 
         self.height, self.width, self.channels = shape
-
-        self.digitClassifier = joblib.load(svmFile)
-
-        logger.debug('SVM digit classifier loaded successfully.')
-        logger.info(colors.blue & colors.bold |
-                    'Digit SVM (linear kernel) classifier: '
-                    'C = {}, loss = {}, penalty = {}'
-                    .format(self.digitClassifier.C,
-                            self.digitClassifier.loss.replace('_', ' '),
-                            self.digitClassifier.penalty))
 
         self.speedSignClassifier = cv2.CascadeClassifier(speedSignCascade)
         self.stopSignScaleFactor = stopSignScaleFactor

@@ -35,6 +35,7 @@ def main(stdscr):
                           CAMERA_PORT,
                           HandleCamera,
                           name='cameraServer')
+
     remoteControlServer = Server('',
                                  REMOTE_CONTROL_PORT,
                                  HandleRemoteControl,
@@ -55,6 +56,8 @@ def main(stdscr):
             cameraServer.shutdown()
             break
 
+
+# Each handle is executed in it's own independent process.
 
 def HandleRemoteControl(connection, shutdownRequest):
     commands = {

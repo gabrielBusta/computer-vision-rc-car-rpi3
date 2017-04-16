@@ -4,8 +4,6 @@ import numpy as np
 import logging
 from plumbum import colors
 from threading import Thread
-from sklearn.externals import joblib
-from skimage.feature import hog
 
 
 logger = logging.getLogger(__name__)

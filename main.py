@@ -20,6 +20,7 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 """
 import logging
+from utils import RemoteControl
 from cvutils import *
 from settings import *
 from plumbum import colors
@@ -32,6 +33,7 @@ logging.basicConfig(level=logging.DEBUG)
 def main():
     #videoStream = cv2.VideoCapture('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT))
     #videoStream = VideoStream('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT)).start()
+    #remoteControl = RemoteControl(ROBOT_IP, REMOTE_CONTROL_PORT)
     videoStream = VideoStream(0).start()
     streaming, frame = videoStream.read()
 

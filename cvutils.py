@@ -84,6 +84,11 @@ class ImageAnalysis(object):
     def dilate(self, frame, kernel=(1, 1)):
         cv2.dilate(frame, kernel)
 
+    def findContours(self, frame):
+         return cv2.findContours(frame,
+                                 cv2.RETR_EXTERNAL,
+                                 cv2.CHAIN_APPROX_SIMPLE)
+
     def detectLanes(self, frame):
         roi = frame[self.laneRoiCutoff:self.height, 0:self.width]
         roi_canny = cv2.Canny(frame, 90, 200)
@@ -108,11 +113,24 @@ class ImageAnalysis(object):
 
     def readDigits(self, frame, signs):
         for x, y, w, h in signs:
+            sign_area = h * w
             sign = frame[y:y+h, x:x+w]
+            threshold = self.invertedBinaryThreshold(sign,
+                                                     lowerBound=115,
+                                                     upperBound=200)
 
-            return sign
+            threshold = self.openWithEllipticalKernel(threshold)
+            copy, contours, hierarchy = self.findContours(threshold)
 
-        return np.zeros((self.height, self.width, self.channels))
+            boundingRects = [cv2.boundingRect(contour) for contour in contours]
+
+            for x, y, w, h in boundingRects:
+                cv2.rectangle(threshold, (x, y), (x + w, y + h),
+                              (255, 255, 255), 1)
+
+            return threshold
+
+        return np.zeros((self.height // 2, self.width // 2, self.channels))
 
 
 class DisplayManager(object):
@@ -131,14 +149,14 @@ class DisplayManager(object):
 
     def createWindows(self):
         cv2.namedWindow('GOPIGO')
-        cv2.namedWindow('ROI')
+        cv2.namedWindow('DIGITS')
 
     def destroyWindows(self):
         cv2.destroyAllWindows()
 
     def show(self, frame, digitsRoi):
         cv2.imshow('GOPIGO', frame)
-        cv2.imshow('ROI', digitsRoi)
+        cv2.imshow('DIGITS', digitsRoi)
 
     def getKeyPressed(self):
         return chr(cv2.waitKey(1))

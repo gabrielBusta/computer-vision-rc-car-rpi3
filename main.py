@@ -34,7 +34,7 @@ def main():
     #videoStream = VideoStream('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT)).start()
     videoStream = VideoStream(0).start()
     streaming, frame = videoStream.read()
-    
+
     logger.debug('Video stream started.')
 
     imageAnalysis = ImageAnalysis(frame.shape,
@@ -60,12 +60,12 @@ def main():
         lanes = imageAnalysis.detectLanes(blur)
         speedSigns = imageAnalysis.detectSpeedSigns(blur)
         stopSigns = imageAnalysis.detectStopSigns(blur)
-        digitsRoi = imageAnalysis.readDigits(blur, speedSigns)
+        digits = imageAnalysis.readDigits(blur, speedSigns)
 
         displayManager.drawLanes(frame, lanes)
         displayManager.drawSpeedSigns(frame, speedSigns)
         displayManager.drawStopSigns(frame, stopSigns)
-        displayManager.show(frame, digitsRoi)
+        displayManager.show(frame, digits)
 
         if displayManager.getKeyPressed() == 'q':
             break

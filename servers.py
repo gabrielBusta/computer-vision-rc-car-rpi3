@@ -22,6 +22,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 import socket
 import gopigo
 import settings
+import logging
 from plumbum import colors
 from picamera import PiCamera
 from utils import Server
@@ -32,15 +33,27 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 def main():
+    logger.debug('Servers waiting for external connections.')
     camera_server = Server('',
                            settings.CAMERA_PORT,
                            camera_handle,
-                           name='Camera Server').start()
+                           name='CameraServer').start()
 
     remote_control_server = Server('',
                                    settings.REMOTE_CONTROL_PORT,
                                    remote_control_handle,
-                                   name='Remote Control Server').start()
+                                   name='RemoteControlServer').start()
+
+    print(colors.green & colors.bold |
+          '\n *******************************\n'
+            ' *                             *\n'
+            ' *     PRESS ENTER TO QUIT     *\n'
+            ' *                             *\n'
+            ' *******************************\n')
+
+    input()
+    camera_server.shutdown()
+    remote_control_server.shutdown()
 
 
 # Each handle is executed in it's own independent process.
@@ -88,10 +101,17 @@ def camera_handle(connection, shutdown_request, addr):
     try:
         while not shutdown_request.is_set():
             camera.wait_recording(1)
+    except Exception as ex:
+            logger.warn(colors.yellow & colors.bold |
+                        repr(ex))
     finally:
-        camera.close()
+        try:
+            camera.close()
+        except Exception as ex:
+            logger.warn(colors.yellow & colors.bold |
+                        repr(ex))
 
-    logger.warn(colors.yellow & colors.bold |
+    logger.info(colors.blue & colors.bold |
                 'Stopped stream video too {}'
                 .format(addr))
 

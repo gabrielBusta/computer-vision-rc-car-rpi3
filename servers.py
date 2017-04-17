@@ -102,14 +102,12 @@ def camera_handle(connection, shutdown_request, addr):
         while not shutdown_request.is_set():
             camera.wait_recording(1)
     except Exception as ex:
-            logger.warn(colors.yellow & colors.bold |
-                        repr(ex))
+            logger.warn(colors.yellow & colors.bold | ex)
     finally:
         try:
             camera.close()
         except Exception as ex:
-            logger.warn(colors.yellow & colors.bold |
-                        repr(ex))
+            logger.warn(colors.yellow & colors.bold | ex)
 
     logger.info(colors.blue & colors.bold |
                 'Stopped stream video too {}'

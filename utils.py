@@ -20,8 +20,14 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 """
 import socket
+import logging
+from plumbum import colors
 from threading import Thread
 from multiprocessing import Process, Queue, Event, queues
+
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 
 class RemoteControl(object):
@@ -95,8 +101,13 @@ class Server(object):
     def shutdown(self):
         self.shutdown_request.set()
         self.process.join()
-        self.connection.shutdown(socket.SHUT_RDWR)
-        self.connection.close()
+        try:
+            self.connection.shutdown(socket.SHUT_RDWR)
+            self.connection.close()
+        except:
+            logger.warn(colors.yellow & colors.bold |
+                        '{} transport endpoint is not connected.'
+                        .format(self.name))
         self.socket.shutdown(socket.SHUT_RDWR)
         self.socket.close()
 

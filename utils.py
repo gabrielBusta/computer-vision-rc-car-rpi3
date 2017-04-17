@@ -39,7 +39,14 @@ class RemoteControl(object):
         self.shutdown_request = Event()
 
     def start(self):
-        self.socket.connect((self.ip, self.port))
+        try:
+            self.socket.connect((self.ip, self.port))
+        except Exception as ex:
+            logger.error(colors.red & colors.bold |
+                        'RemoteControl {}. Run "servers.py" on the GoPiGo!'
+                        .format(ex))
+            exit(1)
+
         self.process = Process(target=self.send_commands,
                                daemon=True)
         self.process.start()
@@ -104,10 +111,9 @@ class Server(object):
         try:
             self.connection.shutdown(socket.SHUT_RDWR)
             self.connection.close()
-        except:
+        except Exception as ex:
             logger.warn(colors.yellow & colors.bold |
-                        '{} transport endpoint is not connected.'
-                        .format(self.name))
+                        '{} {}'.format(self.name, ex))
         self.socket.shutdown(socket.SHUT_RDWR)
         self.socket.close()
 

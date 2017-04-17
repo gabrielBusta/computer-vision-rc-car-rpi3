@@ -149,6 +149,12 @@ class VideoStream(object):
     def __init__(self, url):
         self.stream = cv2.VideoCapture(url)
         self.streaming, self.frame = self.stream.read()
+
+        if not self.streaming:
+            logger.error(colors.red & colors.bold |
+                        'VideoStream not started. Run "servers.py" on the GoPiGo!')
+            exit(1)
+
         self.shutdown_request = False
 
     def start(self):

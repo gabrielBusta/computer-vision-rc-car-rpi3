@@ -54,6 +54,13 @@ def main():
 
     display.create_windows()
 
+    print(colors.green & colors.bold |
+          '\n *******************************\n'
+            ' *                             *\n'
+            ' *      PRESS "q" TO QUIT      *\n'
+            ' *                             *\n'
+            ' *******************************\n')
+
     fps_timer = FPSTimer().start()
 
     # MAIN LOOP #

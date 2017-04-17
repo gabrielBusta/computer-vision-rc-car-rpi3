@@ -20,72 +20,69 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 """
 import logging
+import settings
 from utils import RemoteControl
-from cvutils import *
-from settings import *
 from plumbum import colors
-
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
+from cvutils import *
 
 
 def main():
-    #videoStream = cv2.VideoCapture('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT))
-    #videoStream = VideoStream('tcp://{}:{}'.format(ROBOT_IP, CAMERA_PORT)).start()
-    #remoteControl = RemoteControl(ROBOT_IP, REMOTE_CONTROL_PORT)
-    videoStream = VideoStream(0).start()
-    streaming, frame = videoStream.read()
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(level=logging.DEBUG)
+    url = 'tcp://{}:{}'.format(settings.ROBOT_IP, settings.CAMERA_PORT)
+    #video_stream = cv2.VideoCapture(url)
+    #remote_control = RemoteControl(settings.ROBOT_IP, settings.REMOTE_CONTROL_PORT)
+    video_stream = VideoStream(0).start()
+    streaming, frame = video_stream.read()
 
     logger.debug('Video stream started.')
 
-    imageAnalysis = ImageAnalysis(frame.shape,
-                                  'stop-sign-haar-cascade.xml',
-                                  'speed-sign-haar-cascade.xml')
+    analysis = Analysis(frame.shape,
+                        'stop-sign-haar-cascade.xml',
+                        'speed-sign-haar-cascade.xml')
 
     logger.debug('Sucessfully initialized '
                  'image analysis control object.')
 
-    displayManager = DisplayManager()
+    display = Display()
 
     logger.debug('Sucessfully initialized display manager boundary object.')
 
-    displayManager.createWindows()
+    display.create_windows()
 
-    fpsTimer = FPSTimer().start()
+    fps_timer = FPSTimer().start()
 
     # MAIN LOOP #
     while streaming:
-        gray = imageAnalysis.grayScale(frame)
-        blur = imageAnalysis.gaussianBlur(gray)
+        grayed = analysis.gray_scale(frame)
+        blurred = analysis.gaussian_blur(grayed)
 
-        lanes = imageAnalysis.detectLanes(blur)
-        speedSigns = imageAnalysis.detectSpeedSigns(blur)
-        stopSigns = imageAnalysis.detectStopSigns(blur)
-        digits = imageAnalysis.readDigits(blur, speedSigns)
+        lanes = analysis.detect_lanes(blurred)
+        speed_signs = analysis.detect_speed_signs(blurred)
+        stop_signs = analysis.detect_stop_signs(blurred)
 
-        displayManager.drawLanes(frame, lanes)
-        displayManager.drawSpeedSigns(frame, speedSigns)
-        displayManager.drawStopSigns(frame, stopSigns)
-        displayManager.show(frame, digits)
+        display.draw_lanes(frame, lanes)
+        display.draw_speed_signs(frame, speed_signs)
+        display.draw_stop_signs(frame, stop_signs)
+        display.show(frame)
 
-        if displayManager.getKeyPressed() == 'q':
+        if display.get_key_pressed() == 'q':
             break
 
-        streaming, frame = videoStream.read()
-        fpsTimer.update()
+        streaming, frame = video_stream.read()
+        fps_timer.update()
 
-    fpsTimer.stop()
+    fps_timer.stop()
 
     logger.info(colors.blue & colors.bold |
                 'Elasped time = {:.2f}'
-                .format(fpsTimer.elapsed()))
+                .format(fps_timer.elapsed()))
 
     logger.info(colors.blue & colors.bold |
-                'Approx. FPS = {:.2f}'.format(fpsTimer.fps()))
+                'Approx. FPS = {:.2f}'.format(fps_timer.fps()))
 
-    displayManager.destroyWindows()
-    videoStream.release()
+    display.destroy_windows()
+    video_stream.release()
 
 
 if __name__ == '__main__':

@@ -23,6 +23,7 @@ import datetime
 import cv2
 import numpy as np
 import logging
+from collections import namedtuple
 from plumbum import colors
 from threading import Thread
 
@@ -31,66 +32,40 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
 
-class ImageAnalysis(object):
-    def __init__(self, shape, stopSignCascade, speedSignCascade, laneRoiCutoff=390,
-                 stopSignScaleFactor=1.3, stopSignMinNeighbors=5,
-                 speedSignScaleFactor=1.3, speedSignMinNeighbors=5):
+class Analysis(object):
+    def __init__(self, shape, stop_xml, speed_xml, lane_roi_cutoff=390,
+                 stop_scale_factor=1.3, stop_min_neighbors=5,
+                 speed_scale_factor=1.3, speed_min_neighbors=5):
 
         self.height, self.width, self.channels = shape
 
-        self.speedSignClassifier = cv2.CascadeClassifier(speedSignCascade)
-        self.stopSignScaleFactor = stopSignScaleFactor
-        self.stopSignMinNeighbors = stopSignMinNeighbors
+        self.speed_classifier = cv2.CascadeClassifier(speed_xml)
+        self.stop_scale_factor = stop_scale_factor
+        self.stop_min_neighbors = stop_min_neighbors
 
         logger.info(colors.blue & colors.bold |
                     'Stop sign cascade classifier: '
                     'scale factor = {}, minimum number of neighbors = {}'
-                    .format(self.stopSignScaleFactor,
-                            self.stopSignMinNeighbors))
+                    .format(self.stop_scale_factor,
+                            self.stop_min_neighbors))
 
-        self.stopSignClassifier = cv2.CascadeClassifier(stopSignCascade)
-        self.speedSignScaleFactor = speedSignScaleFactor
-        self.speedSignMinNeighbors = speedSignMinNeighbors
+        self.stop_classifier = cv2.CascadeClassifier(stop_xml)
+        self.speed_scale_factor = speed_scale_factor
+        self.speed_min_neighbors = speed_min_neighbors
 
         logger.info(colors.blue & colors.bold |
                     'Speed sign cascade classifier: '
                     'scale factor = {}, minimum number of neighbors = {}'
-                    .format(self.speedSignScaleFactor,
-                            self.speedSignMinNeighbors))
+                    .format(self.speed_scale_factor,
+                            self.speed_min_neighbors))
 
         logger.debug('HAAR cascades loaded successfully.')
 
-        self.laneRoiCutoff = laneRoiCutoff
+        self.lane_roi_cutoff = lane_roi_cutoff
 
 
-    def gaussianBlur(self, frame, kernelSize=(5, 5), sigma=0):
-        return cv2.GaussianBlur(frame, kernelSize, sigma)
-
-    def grayScale(self, frame):
-        return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-    def invertedBinaryThreshold(self, frame, lowerBound, upperBound):
-        ret, thresholded = cv2.threshold(frame, lowerBound, upperBound,
-                                         cv2.THRESH_BINARY_INV)
-        return thresholded
-
-    def openWithEllipticalKernel(self, frame, kernelSize=(1, 5)):
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, kernelSize)
-        return cv2.morphologyEx(frame, cv2.MORPH_OPEN, kernel)
-
-    def resize(self, frame, size):
-        roi = cv2.resize(frame, size, interpolation=cv2.INTER_AREA)
-
-    def dilate(self, frame, kernel=(1, 1)):
-        cv2.dilate(frame, kernel)
-
-    def findContours(self, frame):
-         return cv2.findContours(frame,
-                                 cv2.RETR_EXTERNAL,
-                                 cv2.CHAIN_APPROX_SIMPLE)
-
-    def detectLanes(self, frame):
-        roi = frame[self.laneRoiCutoff:self.height, 0:self.width]
+    def detect_lanes(self, frame):
+        roi = frame[self.lane_roi_cutoff:self.height, 0:self.width]
         roi_canny = cv2.Canny(frame, 90, 200)
         lanes = cv2.HoughLinesP(roi_canny,
                                 1,
@@ -101,96 +76,80 @@ class ImageAnalysis(object):
                                 maxLineGap=20)
         return lanes
 
-    def detectSpeedSigns(self, frame):
-        return self.speedSignClassifier.detectMultiScale(frame,
-                                                         self.speedSignScaleFactor,
-                                                         self.speedSignMinNeighbors)
+    def detect_speed_signs(self, frame):
+        return self.speed_classifier.detectMultiScale(frame,
+                                                      self.speed_scale_factor,
+                                                      self.speed_min_neighbors)
 
-    def detectStopSigns(self, frame):
-        return self.stopSignClassifier.detectMultiScale(frame,
-                                                        self.stopSignScaleFactor,
-                                                        self.stopSignMinNeighbors)
-
-    def readDigits(self, frame, signs):
-        for x, y, w, h in signs:
-            sign_area = h * w
-            sign = frame[y:y+h, x:x+w]
-            threshold = self.invertedBinaryThreshold(sign,
-                                                     lowerBound=115,
-                                                     upperBound=200)
-
-            threshold = self.openWithEllipticalKernel(threshold)
-            copy, contours, hierarchy = self.findContours(threshold)
-
-            boundingRects = [cv2.boundingRect(contour) for contour in contours]
-
-            for x, y, w, h in boundingRects:
-                cv2.rectangle(threshold, (x, y), (x + w, y + h),
-                              (255, 255, 255), 1)
-
-            return threshold
-
-        return np.zeros((self.height // 2, self.width // 2, self.channels))
+    def detect_stop_signs(self, frame):
+        return self.stop_classifier.detectMultiScale(frame,
+                                                     self.stop_scale_factor,
+                                                     self.stop_min_neighbors)
 
 
-class DisplayManager(object):
-    def __init__(self, lineThickness=3, font=cv2.FONT_HERSHEY_SIMPLEX,
-                 fontThickness=1, fontScale=1, laneRoiOffset=390):
+    def gaussian_blur(self, frame, kernel_size=(5, 5), sigma=0):
+        return cv2.GaussianBlur(frame, kernel_size, sigma)
+
+    def gray_scale(self, frame):
+        return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+
+class Display(object):
+    def __init__(self, line_thickness=3, font=cv2.FONT_HERSHEY_SIMPLEX,
+                 font_thickness=1, font_scale=1, lane_roi_offset=390):
 
         self.BLUE = (255, 0, 0)
         self.GREEN = (0, 255, 0)
         self.RED = (0, 0, 255)
 
-        self.lineThickness = lineThickness
+        self.line_thickness = line_thickness
         self.font = font
-        self.fontThickness = fontThickness
-        self.fontScale = fontScale
-        self.laneRoiOffset = laneRoiOffset
+        self.font_thickness = font_thickness
+        self.font_scale = font_scale
+        self.lane_roi_offset = lane_roi_offset
 
-    def createWindows(self):
+    def create_windows(self):
         cv2.namedWindow('GOPIGO')
-        cv2.namedWindow('DIGITS')
 
-    def destroyWindows(self):
+    def destroy_windows(self):
         cv2.destroyAllWindows()
 
-    def show(self, frame, digitsRoi):
+    def show(self, frame):
         cv2.imshow('GOPIGO', frame)
-        cv2.imshow('DIGITS', digitsRoi)
 
-    def getKeyPressed(self):
+    def get_key_pressed(self):
         return chr(cv2.waitKey(1))
 
-    def drawLanes(self, frame, lanes):
+    def draw_lanes(self, frame, lanes):
         if lanes is not None:
             for lane in lanes:
                 for x1, y1, x2, y2 in lane:
                     cv2.line(frame,
-                             (x1, y1 + self.laneRoiOffset),
-                             (x2, y2 + self.laneRoiOffset),
+                             (x1, y1 + self.lane_roi_offset),
+                             (x2, y2 + self.lane_roi_offset),
                              self.BLUE,
-                             self.lineThickness)
+                             self.line_thickness)
 
-    def drawSpeedSigns(self, frame, signs):
+    def draw_speed_signs(self, frame, signs):
         for x, y, w, h in signs:
             cv2.rectangle(frame, (x, y), (x + w, y + h),
-                          self.GREEN, self.lineThickness)
+                          self.GREEN, self.line_thickness)
             cv2.putText(frame, 'Speed Limit', (x, y - 8), self.font,
-                        1, self.GREEN, self.fontThickness, cv2.LINE_AA)
+                        1, self.GREEN, self.font_thickness, cv2.LINE_AA)
 
-    def drawStopSigns(self, frame, signs):
+    def draw_stop_signs(self, frame, signs):
         for x, y, w, h in signs:
             cv2.rectangle(frame, (x, y), (x + w, y + h),
-                          self.RED, self.lineThickness)
-            cv2.putText(frame, 'Stop!', (x, y - 8), self.font, self.fontScale,
-                        self.RED, self.fontThickness, cv2.LINE_AA)
+                          self.RED, self.line_thickness)
+            cv2.putText(frame, 'Stop!', (x, y - 8), self.font, self.font_scale,
+                        self.RED, self.font_thickness, cv2.LINE_AA)
 
 
 class VideoStream(object):
     def __init__(self, url):
         self.stream = cv2.VideoCapture(url)
         self.streaming, self.frame = self.stream.read()
-        self.shutdownRequest = False
+        self.shutdown_request = False
 
     def start(self):
         self.thread = Thread(target=self.update)
@@ -198,36 +157,36 @@ class VideoStream(object):
         return self
 
     def update(self):
-        while not self.shutdownRequest:
+        while not self.shutdown_request:
             self.streaming, self.frame = self.stream.read()
 
     def read(self):
         return self.streaming, self.frame
 
     def release(self):
-        self.shutdownRequest = True
+        self.shutdown_request = True
         self.thread.join()
         self.stream.release()
 
 
 class FPSTimer(object):
     def __init__(self):
-        self.startTime = None
-        self.endTime = None
-        self.numFrames = 0
+        self.start_time = None
+        self.end_time = None
+        self.num_frames = 0
 
     def start(self):
-        self.startTime = datetime.datetime.now()
+        self.start_time = datetime.datetime.now()
         return self
 
     def stop(self):
-        self.endTime = datetime.datetime.now()
+        self.end_time = datetime.datetime.now()
 
     def update(self):
-        self.numFrames += 1
+        self.num_frames += 1
 
     def elapsed(self):
-        return (self.endTime - self.startTime).total_seconds()
+        return (self.end_time - self.start_time).total_seconds()
 
     def fps(self):
-        return self.numFrames / self.elapsed()
+        return self.num_frames / self.elapsed()

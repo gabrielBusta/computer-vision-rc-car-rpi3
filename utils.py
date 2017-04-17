@@ -29,44 +29,44 @@ class RemoteControl(object):
         self.ip = ip
         self.port = port
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.commandQueue = Queue()
-        self.shutdownRequest = Event()
+        self.command_queue = Queue()
+        self.shutdown_request = Event()
 
     def start(self):
         self.socket.connect((self.ip, self.port))
-        self.process = Process(target=self.sendCommands,
+        self.process = Process(target=self.send_commands,
                                daemon=True)
         self.process.start()
         return self
 
-    def sendCommands(self):
-        while not self.shutdownRequest.is_set():
+    def send_commands(self):
+        while not self.shutdown_request.is_set():
             try:
-                command = self.commandQueue.get(timeout=0.5)
+                command = self.command_queue.get(block=False)
                 self.socket.send(command)
             except queues.Empty:
                 continue
 
     def shutdown(self):
-        self.shutdownRequest.set()
+        self.shutdown_request.set()
         self.process.join()
         self.socket.shutdown(socket.SHUT_RDWR)
         self.socket.close()
 
     def fwd(self):
-        self.commandQueue.put('fwd'.encode())
+        self.command_queue.put('fwd'.encode())
 
     def bwd(self):
-        self.commandQueue.put('bwd'.encode())
+        self.command_queue.put('bwd'.encode())
 
     def left(self):
-        self.commandQueue.put('left'.encode())
+        self.command_queue.put('left'.encode())
 
     def right(self):
-        self.commandQueue.put('right'.encode())
+        self.command_queue.put('right'.encode())
 
     def stop(self):
-        self.commandQueue.put('stop'.encode())
+        self.command_queue.put('stop'.encode())
 
 
 class Server(object):
@@ -75,22 +75,24 @@ class Server(object):
         self.port = port
         self.handle = handle
         self.name = name
-        self.shutdownRequest = Event()
+        self.shutdown_request = Event()
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def start(self):
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind((self.ip, self.port))
         self.socket.listen(0)
-        self.connection, _ = self.socket.accept()
+        self.connection, addr = self.socket.accept()
         self.process = Process(target=self.handle,
-                               args=(self.connection, self.shutdownRequest),
-                               name=self.name)
+                               name=self.name,
+                               args=(self.connection,
+                                     self.shutdown_request,
+                                     addr))
         self.process.start()
         return self
 
     def shutdown(self):
-        self.shutdownRequest.set()
+        self.shutdown_request.set()
         self.process.join()
         self.connection.shutdown(socket.SHUT_RDWR)
         self.connection.close()

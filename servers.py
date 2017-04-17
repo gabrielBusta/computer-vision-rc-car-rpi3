@@ -21,45 +21,32 @@ along with this program. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 """
 import socket
 import gopigo
-from curses import wrapper, A_BOLD
+import settings
+from plumbum import colors
 from picamera import PiCamera
-from settings import *
 from utils import Server
 
 
-def main(stdscr):
-    stdscr.addstr(1, 1, 'SELF DRIVING GOPIGO', A_BOLD)
-    stdscr.refresh()
-
-    cameraServer = Server('',
-                          CAMERA_PORT,
-                          HandleCamera,
-                          name='cameraServer')
-
-    remoteControlServer = Server('',
-                                 REMOTE_CONTROL_PORT,
-                                 HandleRemoteControl,
-                                 name='remoteControlServer')
-
-    stdscr.addstr(3, 1, '[INFO] Wating for CV client...')
-    stdscr.refresh()
-    cameraServer.start()
-    stdscr.addstr(3, 25, 'connection with CV client established.')
-    stdscr.refresh()
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 
-    stdscr.addstr(5, 1, 'Hit SPACE to quit...')
-    stdscr.refresh()
-    while True:
-        c = chr(stdscr.getch())
-        if c == ' ':
-            cameraServer.shutdown()
-            break
+def main():
+    camera_server = Server('',
+                           settings.CAMERA_PORT,
+                           camera_handle,
+                           name='Camera Server').start()
+
+    remote_control_server = Server('',
+                                   settings.REMOTE_CONTROL_PORT,
+                                   remote_control_handle,
+                                   name='Remote Control Server').start()
 
 
 # Each handle is executed in it's own independent process.
-
-def HandleRemoteControl(connection, shutdownRequest):
+def remote_control_handle(connection, shutdown_request, addr):
+    logger = logging.getLogger('RemoteControlHandle')
+    logging.basicConfig(level=logging.DEBUG)
     commands = {
         'fwd': gopigo.fwd,
         'bwd': gopigo.bwd,
@@ -67,27 +54,46 @@ def HandleRemoteControl(connection, shutdownRequest):
         'right': gopigo.right,
         'stop': gopigo.stop
     }
-    while not shutdownRequest.is_set():
+
+    logger.info(colors.blue & colors.bold |
+                'Listening to remote control commands from {}'
+                .format(addr))
+
+    while not shutdown_request.is_set():
         message = connection.recv(1024).decode()
         if not message:
             break
         command = commands[message]
         command()
 
+    logger.warn(colors.yellow & colors.bold |
+                'Stopped listening to remote control commands from {}'
+                .format(addr))
 
-def HandleCamera(connection, shutdownRequest):
+
+# Each handle is executed in it's own independent process.
+def camera_handle(connection, shutdown_request, addr):
+    logger = logging.getLogger('CameraHandle')
+    logging.basicConfig(level=logging.DEBUG)
     stream = connection.makefile('wb')
     camera = PiCamera()
-    camera.framerate = CAMERA_FRAMERATE
-    camera.resolution = CAMERA_RESOLUTION
-    camera.rotation = CAMERA_ROTATION
-    camera.start_recording(stream, format=CAMERA_VIDEO_FORMAT)
+    camera.framerate = settings.CAMERA_FRAMERATE
+    camera.resolution = settings.CAMERA_RESOLUTION
+    camera.rotation = settings.CAMERA_ROTATION
+
+    camera.start_recording(stream, format=settings.CAMERA_VIDEO_FORMAT)
+    logger.info(colors.blue & colors.bold |
+                'Streaming video to {}'
+                .format(addr))
     try:
-        while not shutdownRequest.is_set():
+        while not shutdown_request.is_set():
             camera.wait_recording(1)
     finally:
         camera.close()
 
+    logger.warn(colors.yellow & colors.bold |
+                'Stopped stream video too {}'
+                .format(addr))
 
 if __name__ == '__main__':
-    wrapper(main)
+    main()

@@ -26,13 +26,17 @@ from plumbum import colors
 from cvutils import *
 
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
+
+
 def main():
-    logger = logging.getLogger(__name__)
-    logging.basicConfig(level=logging.DEBUG)
     url = 'tcp://{}:{}'.format(settings.ROBOT_IP, settings.CAMERA_PORT)
-    #video_stream = cv2.VideoCapture(url)
-    #remote_control = RemoteControl(settings.ROBOT_IP, settings.REMOTE_CONTROL_PORT)
-    video_stream = VideoStream(0).start()
+    video_stream = VideoStream(url).start()
+
+    remote_control = RemoteControl(settings.ROBOT_IP,
+                                   settings.REMOTE_CONTROL_PORT).start()
+
     streaming, frame = video_stream.read()
 
     logger.debug('Video stream started.')
@@ -81,6 +85,7 @@ def main():
     logger.info(colors.blue & colors.bold |
                 'Approx. FPS = {:.2f}'.format(fps_timer.fps()))
 
+    remote_control.shutdown()
     display.destroy_windows()
     video_stream.release()
 

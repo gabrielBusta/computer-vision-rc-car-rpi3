@@ -48,6 +48,7 @@ class RemoteControl(object):
                 continue
 
     def shutdown(self):
+        self.socket.send(''.encode())
         self.shutdown_request.set()
         self.process.join()
         self.socket.shutdown(socket.SHUT_RDWR)

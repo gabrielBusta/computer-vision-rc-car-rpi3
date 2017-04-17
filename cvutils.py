@@ -23,7 +23,6 @@ import datetime
 import cv2
 import numpy as np
 import logging
-from collections import namedtuple
 from plumbum import colors
 from threading import Thread
 

@@ -65,7 +65,7 @@ class Analysis(object):
 
     def detect_lanes(self, frame):
         roi = frame[self.lane_roi_cutoff:self.height, 0:self.width]
-        roi_canny = cv2.Canny(frame, 90, 200)
+        roi_canny = cv2.Canny(roi, 90, 200)
         lanes = cv2.HoughLinesP(roi_canny,
                                 1,
                                 np.pi / 180,
@@ -150,7 +150,7 @@ class VideoStream(object):
         self.streaming, self.frame = self.stream.read()
 
         if not self.streaming:
-            logger.error(colors.red & colors.bold |
+            logger.error(colors.red |
                         'VideoStream not started. Run "servers.py" on the GoPiGo!')
             exit(1)
 

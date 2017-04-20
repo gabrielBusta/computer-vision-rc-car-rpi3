@@ -42,7 +42,7 @@ class RemoteControl(object):
         try:
             self.socket.connect((self.ip, self.port))
         except Exception as ex:
-            logger.error(colors.red & colors.bold |
+            logger.error(colors.red |
                         'RemoteControl {}. Run "servers.py" on the GoPiGo!'
                         .format(ex))
             exit(1)

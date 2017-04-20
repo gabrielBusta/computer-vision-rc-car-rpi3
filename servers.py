@@ -33,7 +33,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 def main():
-    logger.debug('Servers waiting for external connections.')
+    logger.info('Servers waiting for external connections. Run "main.py" on client.')
     camera_server = Server('',
                            settings.CAMERA_PORT,
                            camera_handle,
@@ -102,15 +102,15 @@ def camera_handle(connection, shutdown_request, addr):
         while not shutdown_request.is_set():
             camera.wait_recording(1)
     except Exception as ex:
-            logger.warn(colors.yellow & colors.bold | ex)
+            logger.warn(colors.yellow & colors.bold | str(ex))
     finally:
         try:
             camera.close()
         except Exception as ex:
-            logger.warn(colors.yellow & colors.bold | ex)
+            logger.warn(colors.yellow & colors.bold | str(ex))
 
     logger.info(colors.blue & colors.bold |
-                'Stopped stream video too {}'
+                'Stopped stream video to {}'
                 .format(addr))
 
 if __name__ == '__main__':

@@ -33,13 +33,12 @@ logging.basicConfig(level=logging.DEBUG)
 def main():
     url = 'tcp://{}:{}'.format(settings.ROBOT_IP, settings.CAMERA_PORT)
     video_stream = VideoStream(url).start()
+    streaming, frame = video_stream.read()
+    logger.debug('Video stream started.')
 
     remote_control = RemoteControl(settings.ROBOT_IP,
                                    settings.REMOTE_CONTROL_PORT).start()
-
-    streaming, frame = video_stream.read()
-
-    logger.debug('Video stream started.')
+    logger.debug('Established remote control connection.')
 
     analysis = Analysis(frame.shape,
                         'stop-sign-haar-cascade.xml',
